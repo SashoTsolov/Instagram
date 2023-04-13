@@ -10,7 +10,8 @@ CREATE TABLE users (
   gender VARCHAR(1),
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
-  created_at TIMESTAMP NOT NULL,
+  verification_code VARCHAR(100) NOT NULL UNIQUE,
+  date_time_created TIMESTAMP NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
 
@@ -39,7 +40,7 @@ CREATE TABLE posts (
   location_id INT,
   post_type_id INT NOT NULL,
   caption TEXT,
-  created_time TIMESTAMP NOT NULL,
+  date_time_created TIMESTAMP NOT NULL,
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
   FOREIGN KEY (post_type_id) REFERENCES post_types(id) ON DELETE CASCADE
@@ -87,7 +88,7 @@ CREATE TABLE comments (
   owner_id INT NOT NULL,
   parent_id INT,
   content VARCHAR(2000) NOT NULL,
-  created_at TIMESTAMP NOT NULL,
+  date_time_created TIMESTAMP NOT NULL,
   FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
