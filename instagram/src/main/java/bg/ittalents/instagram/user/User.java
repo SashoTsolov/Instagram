@@ -1,5 +1,6 @@
 package bg.ittalents.instagram.user;
 
+import bg.ittalents.instagram.post.entities.Post;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,6 +8,7 @@ import lombok.Setter;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -52,6 +54,4 @@ public class User {
     )
     private Set<User> blocked = new HashSet<>();
 
-    private Set<User> followers = new HashSet<>();
-    //TODO
 }

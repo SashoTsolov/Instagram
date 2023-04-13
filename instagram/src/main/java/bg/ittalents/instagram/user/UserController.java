@@ -1,6 +1,7 @@
 package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
+import bg.ittalents.instagram.post.entities.Post;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpSession;
@@ -19,22 +20,21 @@ public class UserController extends AbstractController {
     // GET localhost:8080/users/email?verification-token=QWERTY123456
     @GetMapping("/email")
     public UserWithoutPassAndEmailDTO getUserByEmail(@RequestParam String verificationToken) {
-        // implementation
-        return null;
-        //TODO
+        return userService.getUserByEmail(verificationToken);
     }
 
     // GET localhost:8080/users/2
     @GetMapping("/{id}")
-    public UserWithoutPassAndEmailDTO getUserById(@PathVariable long id) {
+    public UserWithoutPassAndEmailDTO getUserById(@PathVariable long id, HttpSession s) {
+        getLoggedId(s);
         return userService.getById(id);
     }
 
     // GET localhost:8080/users/2/tagged
     @GetMapping("/{id}/tagged")
     public List<Post> getTaggedPosts(@PathVariable long id, HttpSession s) {
-        long userId = getLoggedId(s);
-        return userService.getTaggedPostsById(id, userId);
+        getLoggedId(s);
+        return userService.getTaggedPostsById(id);
     }
 
     // GET localhost:8080/users/1/followers
@@ -55,19 +55,20 @@ public class UserController extends AbstractController {
     @PostMapping("/search")
     public List<UserBasicInfoDTO> searchUsers(@RequestBody String name, HttpSession s) {
         long userId = getLoggedId(s);
-        return userService.getAllByName(name);
+        return userService.getAllByName(name, userId);
         //TODO
     }
 
     // POST localhost:8080/users
     @PostMapping
     public UserWithoutPassAndEmailDTO createUser(@RequestBody RegisterDTO dto) {
-        return userService.register(dto);
+        return userService.create(dto);
     }
 
     // POST localhost:8080/users/login
     @PostMapping("/login")
     public UserWithoutPassAndEmailDTO login(@RequestBody UserLoginDTO dto, HttpSession s) {
+        //Please keep in mind that the login method does the mapping.
         UserWithoutPassAndEmailDTO respDto = userService.login(dto);
         s.setAttribute("LOGGED", true);
         s.setAttribute("LOGGED_ID", respDto.getId());
@@ -125,29 +126,29 @@ public class UserController extends AbstractController {
 
     // PUT localhost:8080/users/password
     @PutMapping("/password")
-    public void updatePassword(@RequestBody UpdatePasswordRequest request) {
-        // implementation
-        //TODO
+    public void updatePassword(@RequestBody UserChangePasswordDTO dto, HttpSession s) {
+        long userId = getLoggedId(s);
+        userService.changePassword(dto, userId);
     }
 
     // PUT localhost:8080/users/info
     @PutMapping("/info")
-    public void updateUserInfo(@RequestBody UpdateUserInfoRequest request) {
-        // implementation
-        //TODO
+    public void updateUserInfo(@RequestBody UserChangeInfoDTO dto, HttpSession s) {
+        long userId = getLoggedId(s);
+        userService.changeInfo(dto, userId);
     }
 
     // PUT localhost:8080/users/deactivate
     @PutMapping("/deactivate")
-    public void deactivateUser() {
-        // implementation
-        //TODO
+    public void deactivateUser(UserPasswordDTO dto, HttpSession s) {
+        long userId = getLoggedId(s);
+        userService.deactiveAccount(dto, userId);
     }
 
     // DELETE localhost:8080/users
     @DeleteMapping
-    public void deleteUser() {
-        // implementation
-        //TODO
+    public void deleteUser(UserPasswordDTO dto, HttpSession s) {
+        long userId = getLoggedId(s);
+        userService.deleteAccount(dto, userId);
     }
 }
