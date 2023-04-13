@@ -8,5 +8,4 @@ public class PostService {
 
     @Autowired
     private PostRepository postRepository;
-
 }
