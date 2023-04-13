@@ -1,5 +1,7 @@
 package bg.ittalents.instagram.post;
 
+import bg.ittalents.instagram.post.DTOs.PostPreviewDTO;
+import bg.ittalents.instagram.util.AbstractController;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/posts")
-public class PostController {
+public class PostController extends AbstractController {
 
 
     private PostService postService;
@@ -25,73 +27,64 @@ public class PostController {
         this.mapper = mapper;
     }
 
-    // GET
+    // GET - localhost:8080/posts/1
     // View
-    // localhost:8080/posts/1
     @GetMapping("/{id}")
     public void getPostById(@PathVariable Long id) {
         //TODO
     }
 
-    // GET
+    // GET - localhost:8080/posts/saved
     // View my saved posts
-    // localhost:8080/posts/saved
     @GetMapping("/saved")
     public void getUserSavedPosts() {
         //TODO
     }
 
-    // GET
+    // GET - localhost:8080/posts
     // View recent posts from followed users - Feed
-    // localhost:8080/posts
     @GetMapping
     public void getPostsFromFeed() {
         //TODO
     }
 
-    // POST
+    // POST - localhost:8080/posts/search
     // View all by hashtag
-    // localhost:8080/posts/search
     @PostMapping("/search")
     public void searchPostsByHashtags() {
         //TODO
     }
 
-    // POST
+    // POST - localhost:8080/posts/1/like
     // Like/Unlike
-    // localhost:8080/posts/1/like
     @PostMapping("/{id}/like")
     public void likePost(@PathVariable Long id) {
         //TODO
     }
 
-    // POST
+    // POST - localhost:8080/posts
     // Add
-    // localhost:8080/posts
     @PostMapping
-    public void addPost(@RequestBody PostPreviewDTORecord postPreviewDTORecord) {
+    public void addPost(@RequestBody PostPreviewDTO postPreviewDTORecord) {
         //TODO
     }
 
-    // POST
+    // POST - localhost:8080/posts/1/save
     // Save
-    // localhost:8080/posts/1/save
     @PostMapping("/{id}/save")
     public void savePost(@PathVariable Long id) {
         //TODO
     }
 
-    // PUT
+    // PUT - localhost:8080/posts/1/caption
     // Edit caption
-    // localhost:8080/posts/1/caption
     @PutMapping("/{id}/caption")
     public void updateCaption(@PathVariable Long id, @RequestBody String caption) {
         //TODO
     }
 
-    // DELETE
+    // DELETE - localhost:8080/posts/1
     // Delete
-    // localhost:8080/posts/1
     @DeleteMapping("/{id}")
     public void deletePost(@PathVariable Long id) {
         //TODO
