@@ -5,10 +5,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -30,9 +31,9 @@ public class User {
     @Column
     private String bio;
     @Column
-    private Date dateOfBirth;
+    private LocalDate dateOfBirth;
     @Column
-    private char gender;
+    private String gender;
     @Column
     private String profilePictureUrl;
     @Column
@@ -49,9 +50,32 @@ public class User {
     @ManyToMany
     @JoinTable(
         name = "users_block_users",
-        joinColumns = @JoinColumn(name = "blocked_user_id"),
-        inverseJoinColumns = @JoinColumn(name = "blocking_user_id")
+        joinColumns = @JoinColumn(name = "blocking_user_id"),
+        inverseJoinColumns = @JoinColumn(name = "blocked_user_id")
     )
     private Set<User> blocked = new HashSet<>();
 
+    @ManyToMany
+    @JoinTable(
+            name = "followers",
+            joinColumns = @JoinColumn(name = "followed_user_id"),
+            inverseJoinColumns = @JoinColumn(name = "following_user_id")
+    )
+    private Set<User> followers = new HashSet<>();
+
+    @ManyToMany(mappedBy = "followers")
+    private Set<User> following = new HashSet<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return id == user.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
