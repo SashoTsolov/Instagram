@@ -1,13 +1,10 @@
 package bg.ittalents.instagram.user.DTOs;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class UserForgotPasswordDTO {
-
-    private String email;
-}
+public record UserForgotPasswordDTO(
+        @NotBlank
+        @Email
+        String email
+) {}
