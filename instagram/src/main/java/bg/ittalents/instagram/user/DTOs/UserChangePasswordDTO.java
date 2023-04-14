@@ -1,15 +1,16 @@
 package bg.ittalents.instagram.user.DTOs;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class UserChangePasswordDTO {
-
-    private String currentPassword;
-    private String newPassword;
-    private String confirmNewPassword;
-}
+public record UserChangePasswordDTO(
+        @NotBlank
+        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
+                message = "Weak password")
+        String currentPassword,
+        @NotBlank
+        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
+                message = "Weak password")
+        String newPassword,
+        String confirmNewPassword
+) {}

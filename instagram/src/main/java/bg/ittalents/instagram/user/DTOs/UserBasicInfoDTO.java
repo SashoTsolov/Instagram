@@ -1,16 +1,8 @@
 package bg.ittalents.instagram.user.DTOs;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+public record UserBasicInfoDTO(
+        long id,
+        String username,
+        int name,
+        String profilePictureUrl) {}
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class UserBasicInfoDTO {
-
-    private long id;
-    private String username;
-    private int name;
-    private String profilePictureUrl;
-}
