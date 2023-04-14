@@ -4,12 +4,16 @@ import bg.ittalents.instagram.exceptions.BadRequestException;
 import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
 import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.LocalDateTime;
@@ -56,16 +60,20 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Object> handleValidationExceptions(
-            MethodArgumentNotValidException e) {
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException e,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
         final Map<String, String> errors = new HashMap<>();
-        e.getBindingResult().getAllErrors().forEach((error) -> {
-            final String fieldName = ((FieldError) error).getField();
-            final String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-
-        });
+        e.getBindingResult()
+                .getAllErrors()
+                .forEach((error) -> {
+                    final String fieldName = ((FieldError) error).getField();
+                    final String message = error.getDefaultMessage();
+                    errors.put(fieldName, message);
+                });
         final ErrorDTO ERROR_MESSAGE = new ErrorDTO(errors, HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
         return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.BAD_REQUEST);
     }
