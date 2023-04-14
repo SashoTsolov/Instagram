@@ -1,10 +1,10 @@
 package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
-import bg.ittalents.instagram.post.entities.Post;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,10 +18,10 @@ public class UserController extends AbstractController {
     private UserService userService;
 
     // GET localhost:8080/users/email?verification-token=QWERTY123456
-    @GetMapping("/email")
-    public UserWithoutPassAndEmailDTO getUserByEmail(@RequestParam String verificationToken) {
-        return userService.getUserByEmail(verificationToken);
-    }
+//    @GetMapping("/email")
+//    public UserWithoutPassAndEmailDTO getUserByEmail(@RequestParam String verificationToken) {
+//        return userService.getUserByEmail(verificationToken);
+//    }
 
     // GET localhost:8080/users/2
     @GetMapping("/{id}")
@@ -30,38 +30,34 @@ public class UserController extends AbstractController {
         return userService.getById(id);
     }
 
-    // GET localhost:8080/users/2/tagged
-    @GetMapping("/{id}/tagged")
-    public List<Post> getTaggedPosts(@PathVariable long id, HttpSession s) {
-        getLoggedId(s);
-        return userService.getTaggedPostsById(id);
-    }
-
-    // GET localhost:8080/users/1/followers
-    @GetMapping("/{id}/followers")
-    public List<UserBasicInfoDTO> getFollowers(@PathVariable long id, HttpSession s) {
-        long userId = getLoggedId(s);
-        return userService.getAllFollowersById(id, userId);
-    }
-
-    // GET localhost:8080/users/1/following
-    @GetMapping("/{id}/following")
-    public List<UserBasicInfoDTO> getFollowing(@PathVariable long id, HttpSession s) {
-        long userId = getLoggedId(s);
-        return userService.getAllFollowingById(id, userId);
-    }
-
-    // POST localhost:8080/users/search
-    @PostMapping("/search")
-    public List<UserBasicInfoDTO> searchUsers(@RequestBody String name, HttpSession s) {
-        long userId = getLoggedId(s);
-        return userService.getAllByName(name, userId);
-        //TODO
-    }
+//    // GET localhost:8080/users/1/followers
+//    @GetMapping("/{id}/followers")
+//    public List<UserBasicInfoDTO> getFollowers(@PathVariable long id, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        return userService.getAllFollowersById(id, userId);
+//    }
+//
+//    // GET localhost:8080/users/1/following
+//    @GetMapping("/{id}/following")
+//    public List<UserBasicInfoDTO> getFollowing(@PathVariable long id, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        return userService.getAllFollowingById(id, userId);
+//    }
+//
+//    // POST localhost:8080/users/search
+//    @PostMapping("/search")
+//    public List<UserBasicInfoDTO> searchUsers(@RequestBody String name, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        return userService.getAllByName(name, userId);
+//        //TODO
+//    }
 
     // POST localhost:8080/users
     @PostMapping
-    public UserWithoutPassAndEmailDTO createUser(@RequestBody RegisterDTO dto) {
+    public UserWithoutPassAndEmailDTO createUser(@Valid @RequestBody RegisterDTO dto, HttpSession s) {
+        if (s.getAttribute("LOGGED_ID") != null) {
+            throw new UnauthorizedException("You can't register while logged into an account");
+        }
         return userService.create(dto);
     }
 
@@ -69,6 +65,7 @@ public class UserController extends AbstractController {
     @PostMapping("/login")
     public UserWithoutPassAndEmailDTO login(@RequestBody UserLoginDTO dto, HttpSession s) {
         //Please keep in mind that the login method does the mapping.
+        //Add logic that you can't log in if you're already logged in!
         UserWithoutPassAndEmailDTO respDto = userService.login(dto);
         s.setAttribute("LOGGED", true);
         s.setAttribute("LOGGED_ID", respDto.getId());
@@ -86,69 +83,63 @@ public class UserController extends AbstractController {
         }
     }
 
-    // PUT localhost:8080/users/password/forgot
-    @PutMapping("/password/forgot")
-    public void forgotPassword(@RequestBody UserForgotPasswordDTO dto) {
-        String email = dto.getEmail();
-        boolean result = userService.forgotPassword(email);
-        if(!result){
-
-        }
-    }
+     //PUT localhost:8080/users/password/forgot
+//    @PutMapping("/password/forgot")
+//    public void forgotPassword(@RequestBody UserForgotPasswordDTO dto) {
+//        String email = dto.getEmail();
+//        boolean result = userService.forgotPassword(email);
+//        if(!result){
+//
+//        }
+//    }
 
     // POST localhost:8080/users/2/block
     @PostMapping("/{id}/block")
-    public void blockUser(@PathVariable long blockedId, HttpSession s) {
-        long blockerId = getLoggedId(s);
-        userService.block(blockerId, blockedId);
+    public void blockUser(@PathVariable("id") long blockedId, HttpSession s) {
+        long blockingUserId = getLoggedId(s);
+        userService.block(blockingUserId, blockedId);
     }
 
-    // POST localhost:8080/users/2/follow
+     //POST localhost:8080/users/2/follow
     @PostMapping("/{id}/follow")
-    public int followUser(@PathVariable long followedId, HttpSession s) {
+    public int followUser(@PathVariable("id") long followedId, HttpSession s) {
         long followerId = getLoggedId(s);
         return userService.follow(followerId, followedId);
     }
-
-    // POST localhost:8080/users/2/unfollow
-    @PostMapping("/{id}/unfollow")
-    public int unfollowUser(@PathVariable long unfollowedId, HttpSession s) {
-       long unfollowerId = getLoggedId(s);
-       return userService.unfollow(unfollowerId, unfollowedId);
-    }
-
-    // PUT localhost:8080/users/picture
-    @PutMapping("/picture")
-    public void updateProfilePicture(@RequestParam("file") MultipartFile file, HttpSession s) {
-        long userId = getLoggedId(s);
-        return userService.updateProfilePicture(file, userId);
-    }
-
-    // PUT localhost:8080/users/password
-    @PutMapping("/password")
-    public void updatePassword(@RequestBody UserChangePasswordDTO dto, HttpSession s) {
-        long userId = getLoggedId(s);
-        userService.changePassword(dto, userId);
-    }
-
-    // PUT localhost:8080/users/info
-    @PutMapping("/info")
-    public void updateUserInfo(@RequestBody UserChangeInfoDTO dto, HttpSession s) {
-        long userId = getLoggedId(s);
-        userService.changeInfo(dto, userId);
-    }
-
-    // PUT localhost:8080/users/deactivate
-    @PutMapping("/deactivate")
-    public void deactivateUser(UserPasswordDTO dto, HttpSession s) {
-        long userId = getLoggedId(s);
-        userService.deactiveAccount(dto, userId);
-    }
-
-    // DELETE localhost:8080/users
-    @DeleteMapping
-    public void deleteUser(UserPasswordDTO dto, HttpSession s) {
-        long userId = getLoggedId(s);
-        userService.deleteAccount(dto, userId);
-    }
+//
+//
+//     //PUT localhost:8080/users/picture
+//    @PutMapping("/picture")
+//    public void updateProfilePicture(@RequestParam("file") MultipartFile file, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        return userService.updateProfilePicture(userId, file);
+//    }
+//
+//    // PUT localhost:8080/users/password
+//    @PutMapping("/password")
+//    public void updatePassword(@RequestBody UserChangePasswordDTO dto, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        userService.changePassword(userId, dto);
+//    }
+//
+//    // PUT localhost:8080/users/info
+//    @PutMapping("/info")
+//    public void updateUserInfo(@RequestBody UserChangeInfoDTO dto, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        userService.changeInfo(userId, dto);
+//    }
+//
+//    // PUT localhost:8080/users/deactivate
+//    @PutMapping("/deactivate")
+//    public void deactivateUser(UserPasswordDTO dto, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        userService.deactiveAccount(userId, dto);
+//    }
+//
+//    // DELETE localhost:8080/users
+//    @DeleteMapping
+//    public void deleteUser(UserPasswordDTO dto, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        userService.deleteAccount(userId, dto);
+//    }
 }
