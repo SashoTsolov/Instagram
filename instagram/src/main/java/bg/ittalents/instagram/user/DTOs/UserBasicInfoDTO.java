@@ -1,7 +1,7 @@
 package bg.ittalents.instagram.user.DTOs;
 
 public record UserBasicInfoDTO(
-        long id,
+        Long id,
         String username,
         int name,
         String profilePictureUrl) {}
