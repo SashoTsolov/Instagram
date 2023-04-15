@@ -1,5 +1,6 @@
 package bg.ittalents.instagram.user;
 
+import bg.ittalents.instagram.comment.Comment;
 import bg.ittalents.instagram.post.entities.Post;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -44,7 +45,9 @@ public class User {
     private Timestamp dateTimeCreated;
     @Column
     private boolean isDeactivated;
-    @OneToMany(mappedBy = "owner")
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments;
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 
     @ManyToMany
@@ -54,6 +57,9 @@ public class User {
         inverseJoinColumns = @JoinColumn(name = "blocked_user_id")
     )
     private Set<User> blocked = new HashSet<>();
+
+    @ManyToMany(mappedBy = "blockedUsers")
+    private List<User> blockedBy;
 
     @ManyToMany
     @JoinTable(
@@ -65,6 +71,38 @@ public class User {
 
     @ManyToMany(mappedBy = "followers")
     private Set<User> following = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "users_like_posts",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "post_id")
+    )
+    private List<Post> likedPosts;
+
+    @ManyToMany
+    @JoinTable(
+            name = "users_have_tagged_posts",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "post_id")
+    )
+    private List<Post> taggedPosts;
+
+    @ManyToMany
+    @JoinTable(
+            name = "users_save_posts",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "post_id")
+    )
+    private List<Post> savedPosts;
+
+    @ManyToMany
+    @JoinTable(
+            name = "comments_have_likes",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "comment_id")
+    )
+    private List<Comment> likedComments;
 
     @Override
     public boolean equals(Object o) {

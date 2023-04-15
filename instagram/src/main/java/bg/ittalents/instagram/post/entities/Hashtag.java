@@ -5,16 +5,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.ManyToMany;
 
 import java.util.Set;
 
-@Getter
-@Setter
-@Entity(name = "locations")
-public class Location {
+
+@Entity(name = "hashtags")
+public class Hashtag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,7 +19,6 @@ public class Location {
     @Column(nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "location")
+    @ManyToMany(mappedBy = "hashtags")
     private Set<Post> posts;
 }
-
