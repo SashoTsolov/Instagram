@@ -4,66 +4,47 @@ import bg.ittalents.instagram.exceptions.BadRequestException;
 import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
 import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
-import bg.ittalents.instagram.user.DTOs.RegisterDTO;
-import bg.ittalents.instagram.user.DTOs.UserBasicInfoDTO;
-import bg.ittalents.instagram.user.DTOs.UserLoginDTO;
-import bg.ittalents.instagram.user.DTOs.UserWithoutPassAndEmailDTO;
+import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService extends AbstractService {
 
-    UserMapper userMapper;
 
-//    public UserWithoutPassAndEmailDTO create(RegisterDTO dto) {
-//        if (!dto.getPassword().equals(dto.getConfirmPassword())){
-//            throw new BadRequestException("Password confirmation mismatch");
-//        }
-//        //Additional validation needed
-//        //TODO
-//        if (userRepository.existsByEmail(dto.getEmail())){
-//            throw new UserAlreadyExistsException("Email already being used");
-//        }
-//        User u = mapper.map(dto, User.class);
-//        u.setPassword(passwordEncoder.encode(u.getPassword()));
-//        u.setVerified(false);
-//        //Have to add for timestamp and verification code
-//        u.setDeactivated(false);
-//        userRepository.save(u);
-//        return mapper.map(u, UserWithoutPassAndEmailDTO.class);
-//    }
+     UserMapper userMapper;
+
 
     public UserWithoutPassAndEmailDTO create(RegisterDTO dto) {
         //Check if email already exists
-        if (userRepository.existsByEmail(dto.email())) {
-            throw new UserAlreadyExistsException("Email already being used");
-        }
-        //Check if username already exists
-        if (userRepository.existsByUsername(dto.username())) {
-            throw new UserAlreadyExistsException("Username already being used");
-        }
-        //Check if password and confirm password match
-        if (!dto.password().equals(dto.confirmPassword())) {
-            throw new BadRequestException("Password confirmation mismatch");
-        }
-        User user = userMapper.registerDtoToUser(dto);
-        user.setPassword(encoder.encode(user.getPassword()));
-        user.setVerified(false);
-        user.setDeactivated(false);
+            if (userRepository.existsByEmail(dto.email())) {
+                throw new UserAlreadyExistsException("Email already being used");
+            }
+            //Check if username already exists
+            if (userRepository.existsByUsername(dto.username())) {
+                throw new UserAlreadyExistsException("Username already being used");
+            }
+            //Check if password and confirm password match
+            if (!dto.password().equals(dto.confirmPassword())) {
+                throw new BadRequestException("Password confirmation mismatch");
+            }
+            User user = userMapper.INSTANCE.registerDtoToUser(dto);
+            user.setPassword(encoder.encode(user.getPassword()));
+            user.setVerified(false);
+            user.setDeactivated(false);
 //        u.setDateOfBirth((Date) dto.getDateOfBirth());
-        //TODO
-        user.setVerified(false);
-        user.setVerificationCode(generateVerificationCode());
+            //TODO
+            user.setVerified(false);
+            user.setVerificationCode(generateVerificationCode());
 //        u.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
-        //TODO
-        userRepository.save(user);
-
-        return userMapper.userToUserWithoutPassAndEmailDto(user);
+            //TODO
+            userRepository.save(user);
+            return userMapper.INSTANCE.userToUserWithoutPassAndEmailDto(user);
     }
 
 
@@ -74,13 +55,13 @@ public class UserService extends AbstractService {
         if(!encoder.matches(dto.password(), user.getPassword())){
             throw new UnauthorizedException("Wrong credentials");
         }
-        return userMapper.userToUserWithoutPassAndEmailDto(user);
+        return userMapper.INSTANCE.userToUserWithoutPassAndEmailDto(user);
     }
 
     public UserWithoutPassAndEmailDTO getById(long id) {
         User user = userRepository.findById(id).
                 orElseThrow(() -> new NotFoundException("User not found"));
-        return userMapper.userToUserWithoutPassAndEmailDto(user);
+        return userMapper.INSTANCE.userToUserWithoutPassAndEmailDto(user);
     }
 
     //This method should be ready to go!!!
@@ -105,7 +86,6 @@ public class UserService extends AbstractService {
             return code;
     }
 
-    //Don't forget to add NOT NULL in SQL table after finishing testing for date_time_of_follow
     public int follow(long followerId, long followedId) {
         Optional<User> follower = userRepository.findById(followerId);
         Optional<User> followed = userRepository.findById(followedId);
@@ -125,6 +105,36 @@ public class UserService extends AbstractService {
         userRepository.save(follower.get());
         userRepository.save(followed.get());
         return followed.get().getFollowers().size();
+    }
+
+    public List<UserBasicInfoDTO> searchUsersByUsername(String username) {
+        List<User> users = userRepository.findAll();
+        List<User> filteredUsers = users.stream()
+                .filter(user -> containsIgnoreCase(user.getUsername(), username))
+                .limit(55)
+                .toList();
+        System.out.println(filteredUsers.size());
+        return filteredUsers.stream()
+                .map(user -> userMapper.INSTANCE.userToUserBasicInfoDto(user)).collect(Collectors.toList());
+    }
+
+    public void changePassword(long userId, UserChangePasswordDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        if (!encoder.matches(dto.currentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password is invalid");
+        }
+        if (!dto.newPassword().equals(dto.confirmNewPassword())) {
+            throw new BadRequestException("Confirm password does not match");
+        }
+
+        String newPassword = encoder.encode(dto.newPassword());
+        user.setPassword(newPassword);
+
+        userRepository.save(user);
+    }
+    public boolean containsIgnoreCase(String str, String subStr) {
+        return str.toLowerCase().contains(subStr.toLowerCase());
     }
 
 //    public Page<UserBasicInfoDTO> getAllUserFollowers(Long id, long userId) {

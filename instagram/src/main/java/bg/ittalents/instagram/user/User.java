@@ -1,7 +1,6 @@
 package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.post.entities.Post;
-import bg.ittalents.instagram.user.DTOs.UserBasicInfoDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

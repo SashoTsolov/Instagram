@@ -19,7 +19,7 @@ public record RegisterDTO(
                 message = "Username should contain only alphanumeric characters, periods, underscores, and dashes")
         String username,
         @NotBlank
-        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
+        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
                 message = "Weak password")
         String password,
         @NotBlank
