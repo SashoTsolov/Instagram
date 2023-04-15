@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/users")
 public class UserController extends AbstractController {
-
     @Autowired
     private UserService userService;
 
@@ -46,21 +44,18 @@ public class UserController extends AbstractController {
 //        return userService.getAllFollowingById(id, userId);
 //    }
 //
-//    // POST localhost:8080/users/search
-//    @PostMapping("/search")
-//    public Page<UserBasicInfoDTO> searchUsers(@RequestBody String name, HttpSession s) {
-//        long userId = getLoggedId(s);
-//        return userService.getAllByName(name, userId);
-//        //TODO
-//    }
+    @GetMapping("/search")
+    public List<UserBasicInfoDTO> searchUsersByUsername(@RequestParam String username) {
+        return userService.searchUsersByUsername(username);
+    }
 
     // POST localhost:8080/users
     @PostMapping
     public UserWithoutPassAndEmailDTO createUser(@Valid @RequestBody RegisterDTO dto, HttpSession s) {
-        if (s.getAttribute("LOGGED_ID") != null) {
-            throw new UnauthorizedException("You can't register while logged into an account");
-        }
-        return userService.create(dto);
+            if (s.getAttribute("LOGGED_ID") != null) {
+                throw new UnauthorizedException("You can't register while logged into an account");
+            }
+            return userService.create(dto);
     }
 
     // POST localhost:8080/users/login
@@ -85,7 +80,8 @@ public class UserController extends AbstractController {
         }
     }
 
-     //PUT localhost:8080/users/password/forgot
+
+//     //PUT localhost:8080/users/password/forgot
 //    @PutMapping("/password/forgot")
 //    public void forgotPassword(@Valid @RequestBody @NotBlank @Email String email) {
 //        boolean result = userService.forgotPassword(email);
@@ -104,8 +100,7 @@ public class UserController extends AbstractController {
         long followerId = getLoggedId(s);
         return userService.follow(followerId, followedId);
     }
-//
-//
+
 //     //PUT localhost:8080/users/picture
 //    @PutMapping("/picture")
 //    public void updateProfilePicture(@RequestParam("file") MultipartFile file, HttpSession s) {
@@ -113,12 +108,12 @@ public class UserController extends AbstractController {
 //        return userService.updateProfilePicture(userId, file);
 //    }
 //
-//    // PUT localhost:8080/users/password
-//    @PutMapping("/password")
-//    public void updatePassword(@RequestBody UserChangePasswordDTO dto, HttpSession s) {
-//        long userId = getLoggedId(s);
-//        userService.changePassword(userId, dto);
-//    }
+    // PUT localhost:8080/users/password
+    @PutMapping("/password")
+    public void updatePassword(@RequestBody UserChangePasswordDTO dto, HttpSession s) {
+        long userId = getLoggedId(s);
+        userService.changePassword(userId, dto);
+    }
 //
 //    // PUT localhost:8080/users/info
 //    @PutMapping("/info")

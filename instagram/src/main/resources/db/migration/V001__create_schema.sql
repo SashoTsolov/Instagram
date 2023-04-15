@@ -6,12 +6,12 @@ CREATE TABLE users (
   phone_number VARCHAR(30),
   name VARCHAR(50),
   bio VARCHAR(255),
-  date_of_birth DATE NOT NULL,
+  date_of_birth DATE,
   gender VARCHAR(1),
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
   verification_code VARCHAR(100) NOT NULL UNIQUE,
-  date_time_created TIMESTAMP NOT NULL,
+  date_time_created TIMESTAMP,
   is_deactivated TINYINT NOT NULL
 );
 
