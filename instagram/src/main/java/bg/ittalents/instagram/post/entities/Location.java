@@ -11,7 +11,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity(name = "locations")
-//TODO
 public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

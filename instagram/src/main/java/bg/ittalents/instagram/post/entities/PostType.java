@@ -11,7 +11,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity(name = "post_types")
-//TODO
 public class PostType {
 
     @Id
@@ -20,6 +19,4 @@ public class PostType {
 
     @Column(name = "name", unique = true, nullable = false)
     private String name;
-
 }
-

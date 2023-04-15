@@ -13,7 +13,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-// TODO
 @Getter
 @Setter
 @Entity(name = "posts")

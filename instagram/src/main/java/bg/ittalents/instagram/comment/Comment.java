@@ -10,11 +10,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-// TODO
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @Entity(name = "comments")
@@ -23,11 +26,11 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
@@ -40,4 +43,7 @@ public class Comment {
 
     @Column(name = "date_time_created", nullable = false)
     private LocalDateTime dateTimeCreated;
+
+    @OneToMany(mappedBy = "parent")
+    private List<Comment> replies = new ArrayList<>();
 }
