@@ -5,7 +5,10 @@ import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,28 +28,27 @@ public class UserController extends AbstractController {
 
     // GET localhost:8080/users/2
     @GetMapping("/{id}")
-    public UserWithoutPassAndEmailDTO getUserById(@PathVariable long id, HttpSession s) {
+    public UserWithoutPassAndEmailDTO getUserById(@PathVariable Long id, HttpSession s) {
         getLoggedId(s);
         return userService.getById(id);
     }
 
-//    // GET localhost:8080/users/1/followers
-//    @GetMapping("/{id}/followers")
-//    public List<UserBasicInfoDTO> getFollowers(@PathVariable long id, HttpSession s) {
-//        long userId = getLoggedId(s);
-//        return userService.getAllFollowersById(id, userId);
-//    }
-//
+    // GET localhost:8080/users/1/followers
+    @GetMapping("/{id}/followers")
+    public Page<UserBasicInfoDTO> getFollowers(@PathVariable Long id, HttpSession s) {
+        long userId = getLoggedId(s);
+        return userService.getAllUserFollowers(id, userId);
+    }
 //    // GET localhost:8080/users/1/following
 //    @GetMapping("/{id}/following")
-//    public List<UserBasicInfoDTO> getFollowing(@PathVariable long id, HttpSession s) {
+//    public Page<UserBasicInfoDTO> getFollowing(@PathVariable long id, HttpSession s) {
 //        long userId = getLoggedId(s);
 //        return userService.getAllFollowingById(id, userId);
 //    }
 //
 //    // POST localhost:8080/users/search
 //    @PostMapping("/search")
-//    public List<UserBasicInfoDTO> searchUsers(@RequestBody String name, HttpSession s) {
+//    public Page<UserBasicInfoDTO> searchUsers(@RequestBody String name, HttpSession s) {
 //        long userId = getLoggedId(s);
 //        return userService.getAllByName(name, userId);
 //        //TODO
@@ -84,25 +86,21 @@ public class UserController extends AbstractController {
     }
 
      //PUT localhost:8080/users/password/forgot
-//    @PutMapping("/password/forgot")
-//    public void forgotPassword(@RequestBody UserForgotPasswordDTO dto) {
-//        String email = dto.getEmail();
-//        boolean result = userService.forgotPassword(email);
-//        if(!result){
-//
-//        }
-//    }
+    @PutMapping("/password/forgot")
+    public void forgotPassword(@Valid @RequestBody @NotBlank @Email String email) {
+        boolean result = userService.forgotPassword(email);
+    }
 
     // POST localhost:8080/users/2/block
     @PostMapping("/{id}/block")
-    public void blockUser(@PathVariable("id") long blockedId, HttpSession s) {
+    public void blockUser(@PathVariable("id") Long blockedId, HttpSession s) {
         long blockingUserId = getLoggedId(s);
         userService.block(blockingUserId, blockedId);
     }
 
      //POST localhost:8080/users/2/follow
     @PostMapping("/{id}/follow")
-    public int followUser(@PathVariable("id") long followedId, HttpSession s) {
+    public int followUser(@PathVariable("id") Long followedId, HttpSession s) {
         long followerId = getLoggedId(s);
         return userService.follow(followerId, followedId);
     }

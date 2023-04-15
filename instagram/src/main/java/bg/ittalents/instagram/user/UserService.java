@@ -5,9 +5,11 @@ import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
 import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
 import bg.ittalents.instagram.user.DTOs.RegisterDTO;
+import bg.ittalents.instagram.user.DTOs.UserBasicInfoDTO;
 import bg.ittalents.instagram.user.DTOs.UserLoginDTO;
 import bg.ittalents.instagram.user.DTOs.UserWithoutPassAndEmailDTO;
 import bg.ittalents.instagram.util.AbstractService;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -124,4 +126,10 @@ public class UserService extends AbstractService {
         userRepository.save(followed.get());
         return followed.get().getFollowers().size();
     }
+
+//    public Page<UserBasicInfoDTO> getAllUserFollowers(Long id, long userId) {
+//    }
+//
+//    public boolean forgotPassword(String email) {
+//    }
 }

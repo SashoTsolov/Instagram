@@ -1,6 +1,7 @@
 package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.post.entities.Post;
+import bg.ittalents.instagram.user.DTOs.UserBasicInfoDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,7 +20,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
     @Column
     private String username;
     @Column
@@ -71,7 +72,7 @@ public class User {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return id == user.id;
+        return id.equals(user.id);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package bg.ittalents.instagram.user.DTOs;
 
 public record UserWithoutPassAndEmailDTO(
-        long id,
+        Long id,
         String username,
         String name,
         String bio,
