@@ -14,9 +14,7 @@ public interface UserMapper {
     User userBasicInfoDtoToUser(UserBasicInfoDTO userBasicInfoDto);
     User userChangeInfoDtoToUser(UserChangeInfoDTO userChangeInfoDto);
     User userChangePasswordDtoToUser(UserChangePasswordDTO userChangePasswordDto);
-    User userForgotPasswordDtoToUser(UserForgotPasswordDTO userForgotPasswordDto);
     User userLoginDtoToUser(UserLoginDTO userLoginDto);
-    User userPasswordDtoToUser(UserPasswordDTO userPasswordDto);
     User userWithoutPassAndEmailDtoToUser(UserWithoutPassAndEmailDTO userWithoutPassAndEmailDto);
 
     // Entity to DTO mappings
@@ -24,8 +22,6 @@ public interface UserMapper {
     UserBasicInfoDTO userToUserBasicInfoDto(User user);
     UserChangeInfoDTO userToUserChangeInfoDto(User user);
     UserChangePasswordDTO userToUserChangePasswordDto(User user);
-    UserForgotPasswordDTO userToUserForgotPasswordDto(User user);
     UserLoginDTO userToUserLoginDto(User user);
-    UserPasswordDTO userToUserPasswordDto(User user);
     UserWithoutPassAndEmailDTO userToUserWithoutPassAndEmailDto(User user);
 }

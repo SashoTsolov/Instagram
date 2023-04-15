@@ -34,11 +34,11 @@ public class UserController extends AbstractController {
     }
 
     // GET localhost:8080/users/1/followers
-    @GetMapping("/{id}/followers")
-    public Page<UserBasicInfoDTO> getFollowers(@PathVariable Long id, HttpSession s) {
-        long userId = getLoggedId(s);
-        return userService.getAllUserFollowers(id, userId);
-    }
+//    @GetMapping("/{id}/followers")
+//    public Page<UserBasicInfoDTO> getFollowers(@PathVariable Long id, HttpSession s) {
+//        long userId = getLoggedId(s);
+//        return userService.getAllUserFollowers(id, userId);
+//    }
 //    // GET localhost:8080/users/1/following
 //    @GetMapping("/{id}/following")
 //    public Page<UserBasicInfoDTO> getFollowing(@PathVariable long id, HttpSession s) {
@@ -86,10 +86,10 @@ public class UserController extends AbstractController {
     }
 
      //PUT localhost:8080/users/password/forgot
-    @PutMapping("/password/forgot")
-    public void forgotPassword(@Valid @RequestBody @NotBlank @Email String email) {
-        boolean result = userService.forgotPassword(email);
-    }
+//    @PutMapping("/password/forgot")
+//    public void forgotPassword(@Valid @RequestBody @NotBlank @Email String email) {
+//        boolean result = userService.forgotPassword(email);
+//    }
 
     // POST localhost:8080/users/2/block
     @PostMapping("/{id}/block")
