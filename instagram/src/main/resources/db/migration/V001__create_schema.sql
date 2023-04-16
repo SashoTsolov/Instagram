@@ -29,21 +29,15 @@ CREATE TABLE locations (
   name VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE post_types (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(50) NOT NULL UNIQUE
-);
-
 CREATE TABLE posts (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   owner_id BIGINT NOT NULL,
   location_id BIGINT,
-  post_type_id BIGINT NOT NULL,
+  is_story TINYINT,
   caption TEXT,
   date_time_created TIMESTAMP NOT NULL,
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
-  FOREIGN KEY (post_type_id) REFERENCES post_types(id) ON DELETE CASCADE
+  FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
 );
 
 CREATE TABLE media (

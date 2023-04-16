@@ -58,7 +58,7 @@ public class User {
     )
     private Set<User> blocked = new HashSet<>();
 
-    @ManyToMany(mappedBy = "blockedUsers")
+    @ManyToMany(mappedBy = "blocked")
     private List<User> blockedBy;
 
     @ManyToMany
