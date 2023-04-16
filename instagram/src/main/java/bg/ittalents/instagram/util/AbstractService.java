@@ -16,6 +16,9 @@ public abstract class AbstractService {
     @Autowired
     protected BCryptPasswordEncoder encoder;
 
+    @Autowired
+    protected ModelMapper mapper;
+
 
 
     protected User getUserById(long id){

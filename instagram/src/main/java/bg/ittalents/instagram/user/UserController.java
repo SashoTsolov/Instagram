@@ -1,5 +1,6 @@
 package bg.ittalents.instagram.user;
 
+import bg.ittalents.instagram.exceptions.BadRequestException;
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
@@ -8,6 +9,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -62,17 +64,19 @@ public class UserController extends AbstractController {
     @PostMapping("/login")
     public UserWithoutPassAndEmailDTO login(@RequestBody UserLoginDTO dto, HttpSession s) {
         //Please keep in mind that the login method does the mapping.
-        //Add logic that you can't log in if you're already logged in!
+        if (s.getAttribute("LOGGED_ID") != null) {
+            throw new UnauthorizedException("You're already logged into an account");
+        }
         UserWithoutPassAndEmailDTO respDto = userService.login(dto);
         s.setAttribute("LOGGED", true);
-        s.setAttribute("LOGGED_ID", respDto.id());
+        s.setAttribute("LOGGED_ID", respDto.getId());
         return respDto;
     }
 
     // POST localhost:8080/users/logout
     @PostMapping("/logout")
     public void logout(HttpSession s) {
-        if (s.getAttribute("LOGGED").equals(true)){
+        if (s.getAttribute("LOGGED") != null){
             s.invalidate();
         }
         else {
@@ -128,11 +132,12 @@ public class UserController extends AbstractController {
 //        long userId = getLoggedId(s);
 //        userService.deactiveAccount(userId, dto);
 //    }
-//
-//    // DELETE localhost:8080/users
-//    @DeleteMapping
-//    public void deleteUser(UserPasswordDTO dto, HttpSession s) {
-//        long userId = getLoggedId(s);
-//        userService.deleteAccount(userId, dto);
-//    }
+
+    // DELETE localhost:8080/users
+    @DeleteMapping
+    public void deleteUser(@RequestBody UserPasswordDTO dto, HttpSession session) {
+        Long userId = getLoggedId(session);
+        userService.deleteUserById(userId, dto);
+        session.invalidate();
+    }
 }
