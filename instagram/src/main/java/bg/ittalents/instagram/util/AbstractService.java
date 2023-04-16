@@ -15,8 +15,8 @@ public abstract class AbstractService {
     protected PostRepository postRepository;
     @Autowired
     protected BCryptPasswordEncoder encoder;
-    @Autowired
-    protected ModelMapper mapper;
+
+
 
     protected User getUserById(long id){
         return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User was not found"));

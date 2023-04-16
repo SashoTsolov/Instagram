@@ -1,7 +1,7 @@
 package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.comment.Comment;
-import bg.ittalents.instagram.post.entities.Post;
+import bg.ittalents.instagram.post.Post;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,7 +58,7 @@ public class User {
     )
     private Set<User> blocked = new HashSet<>();
 
-    @ManyToMany(mappedBy = "blockedUsers")
+    @ManyToMany(mappedBy = "blocked")
     private List<User> blockedBy;
 
     @ManyToMany

@@ -1,6 +1,9 @@
-package bg.ittalents.instagram.post.entities;
+package bg.ittalents.instagram.post;
 
 import bg.ittalents.instagram.comment.Comment;
+import bg.ittalents.instagram.hashtag.Hashtag;
+import bg.ittalents.instagram.location.Location;
+import bg.ittalents.instagram.media.Media;
 import bg.ittalents.instagram.user.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -20,6 +23,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -39,7 +43,10 @@ public class Post {
     private Location location;
 
     @Column(nullable = false)
-    private String postType;
+    private Boolean isStory;
+
+    @Column(nullable = false)
+    private Boolean isCreated;
 
     @Column(name = "caption", columnDefinition = "TEXT")
     private String caption;
@@ -53,10 +60,10 @@ public class Post {
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "hashtag_id")
     )
-    private List<Hashtag> hashtags;
+    private Set<Hashtag> hashtags;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private List<Media> mediaList = new ArrayList<>();
+    private List<Media> mediaUrls = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments;

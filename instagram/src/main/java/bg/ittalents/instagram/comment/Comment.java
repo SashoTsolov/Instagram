@@ -1,6 +1,6 @@
 package bg.ittalents.instagram.comment;
 
-import bg.ittalents.instagram.post.entities.Post;
+import bg.ittalents.instagram.post.Post;
 import bg.ittalents.instagram.user.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

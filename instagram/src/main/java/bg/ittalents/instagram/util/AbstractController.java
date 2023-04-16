@@ -11,4 +11,6 @@ public abstract class AbstractController {
         }
         return (long) s.getAttribute("LOGGED_ID");
     }
+
+
 }

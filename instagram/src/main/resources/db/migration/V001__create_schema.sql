@@ -6,12 +6,12 @@ CREATE TABLE users (
   phone_number VARCHAR(30),
   name VARCHAR(50),
   bio VARCHAR(255),
-  date_of_birth DATE,
+  date_of_birth DATE NOT NULL,
   gender VARCHAR(1),
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
   verification_code VARCHAR(100) NOT NULL UNIQUE,
-  date_time_created TIMESTAMP,
+  date_time_created TIMESTAMP NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
 
@@ -29,21 +29,16 @@ CREATE TABLE locations (
   name VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE post_types (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(50) NOT NULL UNIQUE
-);
-
 CREATE TABLE posts (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   owner_id BIGINT NOT NULL,
   location_id BIGINT,
-  post_type_id BIGINT NOT NULL,
+  is_story TINYINT NOT NULL,
   caption TEXT,
+  is_created TINYINT,
   date_time_created TIMESTAMP NOT NULL,
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE,
-  FOREIGN KEY (post_type_id) REFERENCES post_types(id) ON DELETE CASCADE
+  FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
 );
 
 CREATE TABLE media (
@@ -63,7 +58,7 @@ CREATE TABLE users_like_posts (
 
 CREATE TABLE hashtags (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL
+  name VARCHAR(255) NOT NULL UNIQUE
 );
 
 CREATE TABLE posts_have_hashtags (

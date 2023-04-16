@@ -1,6 +1,7 @@
 package bg.ittalents.instagram.media;
 
-import bg.ittalents.instagram.post.entities.Post;
+
+import bg.ittalents.instagram.post.Post;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -25,6 +26,11 @@ public class Media {
     private String mediaUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id")
+    @JoinColumn(name = "post_id", nullable = false)
     private Post post;
+
+    @Override
+    public String toString() {
+        return mediaUrl;
+    }
 }

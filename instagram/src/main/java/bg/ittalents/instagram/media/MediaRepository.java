@@ -1,9 +1,8 @@
-package bg.ittalents.instagram.post;
+package bg.ittalents.instagram.media;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface PostRepository extends JpaRepository<Post, Long> {
-
+public interface MediaRepository extends JpaRepository<Media, Long> {
 }
