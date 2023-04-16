@@ -1,6 +1,7 @@
-package bg.ittalents.instagram.post.entities;
+package bg.ittalents.instagram.media;
 
 
+import bg.ittalents.instagram.post.Post;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

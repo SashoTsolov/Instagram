@@ -1,6 +1,6 @@
 package bg.ittalents.instagram.story;
 
-import bg.ittalents.instagram.post.entities.Post;
+import bg.ittalents.instagram.post.Post;
 import bg.ittalents.instagram.story.DTOs.CreateStoryDTO;
 import bg.ittalents.instagram.story.DTOs.StoryDTO;
 import org.mapstruct.Mapper;

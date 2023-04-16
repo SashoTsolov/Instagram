@@ -56,6 +56,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleAllOtherExceptions(Exception e) {
         final ErrorDTO ERROR_MESSAGE = new ErrorDTO(e.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), LocalDateTime.now());
+        e.printStackTrace(); // TODO
         return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

@@ -1,4 +1,4 @@
-package bg.ittalents.instagram.post.entities;
+package bg.ittalents.instagram.post;
 
 import bg.ittalents.instagram.comment.Comment;
 import bg.ittalents.instagram.hashtag.Hashtag;

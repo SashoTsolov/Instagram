@@ -37,6 +37,7 @@ public class UserService extends AbstractService {
             user.setPassword(encoder.encode(user.getPassword()));
             user.setVerified(false);
             user.setDeactivated(false);
+//            user.setDateOfBirth(java.sql.Date.valueOf(localDate));
 //        u.setDateOfBirth((Date) dto.getDateOfBirth());
             //TODO
             user.setVerified(false);
