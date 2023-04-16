@@ -8,6 +8,8 @@ import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,53 +18,44 @@ import java.util.stream.Collectors;
 @Service
 public class UserService extends AbstractService {
 
-
-     UserMapper userMapper;
-
-
     public UserWithoutPassAndEmailDTO create(RegisterDTO dto) {
         //Check if email already exists
-            if (userRepository.existsByEmail(dto.email())) {
+            if (userRepository.existsByEmail(dto.getEmail())) {
                 throw new UserAlreadyExistsException("Email already being used");
             }
             //Check if username already exists
-            if (userRepository.existsByUsername(dto.username())) {
+            if (userRepository.existsByUsername(dto.getUsername())) {
                 throw new UserAlreadyExistsException("Username already being used");
             }
             //Check if password and confirm password match
-            if (!dto.password().equals(dto.confirmPassword())) {
+            if (!dto.getPassword().equals(dto.getConfirmPassword())) {
                 throw new BadRequestException("Password confirmation mismatch");
             }
-            User user = userMapper.INSTANCE.registerDtoToUser(dto);
+            User user = mapper.map(dto, User.class);
             user.setPassword(encoder.encode(user.getPassword()));
             user.setVerified(false);
             user.setDeactivated(false);
-//            user.setDateOfBirth(java.sql.Date.valueOf(localDate));
-//        u.setDateOfBirth((Date) dto.getDateOfBirth());
-            //TODO
-            user.setVerified(false);
             user.setVerificationCode(generateVerificationCode());
-//        u.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
-            //TODO
+            user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
             userRepository.save(user);
-            return userMapper.INSTANCE.userToUserWithoutPassAndEmailDto(user);
+            return mapper.map(user, UserWithoutPassAndEmailDTO.class);
     }
 
 
     public UserWithoutPassAndEmailDTO login(UserLoginDTO dto) {
-        User user = userRepository.findByEmail(dto.email()).
+        User user = userRepository.findByEmail(dto.getEmail()).
                 orElseThrow(() -> new UnauthorizedException("Wrong credentials"));
         //Check if password matches with the one in the database
-        if(!encoder.matches(dto.password(), user.getPassword())){
+        if(!encoder.matches(dto.getPassword(), user.getPassword())){
             throw new UnauthorizedException("Wrong credentials");
         }
-        return userMapper.INSTANCE.userToUserWithoutPassAndEmailDto(user);
+        return mapper.map(user, UserWithoutPassAndEmailDTO.class);
     }
 
     public UserWithoutPassAndEmailDTO getById(long id) {
         User user = userRepository.findById(id).
                 orElseThrow(() -> new NotFoundException("User not found"));
-        return userMapper.INSTANCE.userToUserWithoutPassAndEmailDto(user);
+        return mapper.map(user, UserWithoutPassAndEmailDTO.class);
     }
 
     //This method should be ready to go!!!
@@ -70,7 +63,7 @@ public class UserService extends AbstractService {
         User blocker = getUserById(blockingUserId);
         User blocked = getUserById(blockedUserId);
         //Check if user is trying to block himself
-        if (blocker.getId() == blocked.getId()) {
+        if (blocker.getId().equals(blocked.getId())) {
             throw new RuntimeException("You cannot block yourself");
         }
         //Check if user is trying to block someone that's already blocked
@@ -108,6 +101,7 @@ public class UserService extends AbstractService {
         return followed.get().getFollowers().size();
     }
 
+
     public List<UserBasicInfoDTO> searchUsersByUsername(String username) {
         List<User> users = userRepository.findAll();
         List<User> filteredUsers = users.stream()
@@ -116,26 +110,35 @@ public class UserService extends AbstractService {
                 .toList();
         System.out.println(filteredUsers.size());
         return filteredUsers.stream()
-                .map(user -> userMapper.INSTANCE.userToUserBasicInfoDto(user)).collect(Collectors.toList());
+                .map(user -> mapper.map(user, UserBasicInfoDTO.class)).collect(Collectors.toList());
     }
 
     public void changePassword(long userId, UserChangePasswordDTO dto) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        if (!encoder.matches(dto.currentPassword(), user.getPassword())) {
+        if (!encoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is invalid");
         }
-        if (!dto.newPassword().equals(dto.confirmNewPassword())) {
+        if (!dto.getNewPassword().equals(dto.getConfirmNewPassword())) {
             throw new BadRequestException("Confirm password does not match");
         }
 
-        String newPassword = encoder.encode(dto.newPassword());
+        String newPassword = encoder.encode(dto.getNewPassword());
         user.setPassword(newPassword);
 
         userRepository.save(user);
     }
     public boolean containsIgnoreCase(String str, String subStr) {
         return str.toLowerCase().contains(subStr.toLowerCase());
+    }
+
+    public void deleteUserById(Long userId, UserPasswordDTO dto) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null && encoder.matches(dto.getPassword(), user.getPassword())) {
+            userRepository.delete(user);
+        } else {
+            throw new BadRequestException("Yikes");
+        }
     }
 
 //    public Page<UserBasicInfoDTO> getAllUserFollowers(Long id, long userId) {

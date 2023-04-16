@@ -2,16 +2,25 @@ package bg.ittalents.instagram.user.DTOs;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record UserChangeInfoDTO(
+@Getter
+@Setter
+@NoArgsConstructor
+public class UserChangeInfoDTO {
+
         @Size(min = 4, max = 20)
         @Pattern(regexp = "^[a-zA-Z0-9._-]+$",
                 message = "Username should contain only alphanumeric characters, periods, underscores, and dashes")
-        String username,
+        private String username;
+
         @Size(min = 4, max = 20)
         @Pattern(regexp = "^[a-zA-Z0-9._-]+$",
                 message = "Username should contain only alphanumeric characters, periods, underscores, and dashes")
-        String name,
+        private String name;
+
         @Size(min = 1, max = 255)
-        String bio
-) {}
+        private String bio;
+}

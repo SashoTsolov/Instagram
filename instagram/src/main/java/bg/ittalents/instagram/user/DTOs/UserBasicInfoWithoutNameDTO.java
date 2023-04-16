@@ -7,10 +7,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UserWithoutPassAndEmailDTO {
+public class UserBasicInfoWithoutNameDTO {
+
     private Long id;
     private String username;
-    private String name;
-    private String bio;
     private String profilePictureUrl;
 }
