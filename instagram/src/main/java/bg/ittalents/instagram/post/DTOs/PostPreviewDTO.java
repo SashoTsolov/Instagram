@@ -1,8 +1,19 @@
 package bg.ittalents.instagram.post.DTOs;
 
-public record PostPreviewDTO(
-        Long id,
-        String mediaUrl,
-        int numberOfLikes,
-        int numberOfComments) { }
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class PostPreviewDTO {
+    private Long id;
+    private List<String> mediaUrls;
+    private int numberOfLikes;
+    private int numberOfComments;
+}
 
