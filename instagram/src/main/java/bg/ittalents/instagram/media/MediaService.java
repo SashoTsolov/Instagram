@@ -3,7 +3,6 @@ package bg.ittalents.instagram.media;
 import bg.ittalents.instagram.exceptions.BadRequestException;
 import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
-//import bg.ittalents.instagram.post.PostMapper;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.post.Post;
 import lombok.SneakyThrows;
@@ -26,8 +25,6 @@ public class MediaService {
 
     @Autowired
     MediaRepository mediaRepository;
-
-//    PostMapper postMapper;
 
     @Autowired
     ModelMapper mediaMapper;
@@ -64,7 +61,6 @@ public class MediaService {
         post.setIsCreated(true);
         postRepository.save(post);
         return mediaMapper.map(post, PostWithoutCommentsDTO.class);
-//            return postMapper.INSTANCE.postToPostWithoutCommentsDto(post);
     }
 
     public File download(String fileName) {
