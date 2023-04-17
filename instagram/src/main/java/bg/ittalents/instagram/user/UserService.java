@@ -49,6 +49,9 @@ public class UserService extends AbstractService {
         if(!encoder.matches(dto.getPassword(), user.getPassword())){
             throw new UnauthorizedException("Wrong credentials");
         }
+        if (user.isDeactivated()){
+            user.setDeactivated(false);
+        }
         return mapper.map(user, UserWithoutPassAndEmailDTO.class);
     }
 
@@ -63,7 +66,7 @@ public class UserService extends AbstractService {
         User blocker = getUserById(blockingUserId);
         User blocked = getUserById(blockedUserId);
         //Check if user is trying to block himself
-        if (blocker.getId().equals(blocked.getId())) {
+        if (blocker.getId() == blocked.getId()) {
             throw new RuntimeException("You cannot block yourself");
         }
         //Check if user is trying to block someone that's already blocked
@@ -132,7 +135,7 @@ public class UserService extends AbstractService {
         return str.toLowerCase().contains(subStr.toLowerCase());
     }
 
-    public void deleteUserById(Long userId, UserPasswordDTO dto) {
+    public void deleteUserById(long userId, UserPasswordDTO dto) {
         User user = userRepository.findById(userId).orElse(null);
         if (user != null && encoder.matches(dto.getPassword(), user.getPassword())) {
             userRepository.delete(user);
@@ -141,9 +144,61 @@ public class UserService extends AbstractService {
         }
     }
 
-//    public Page<UserBasicInfoDTO> getAllUserFollowers(Long id, long userId) {
-//    }
+    public boolean deactivateUser(long userId, UserPasswordDTO dto) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            if (encoder.matches(dto.getPassword(), user.getPassword())) {
+                user.setDeactivated(true);
+                userRepository.save(user);
+                return true;
+            }
+        }
+        return false;
+    }
+
+//    public void changeInfo(long userId, UserChangeInfoDTO dto) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+//        String newUsername = dto.getUsername();
+//        String newName = dto.getName();
+//        String newBio = dto.getBio();
 //
-//    public boolean forgotPassword(String email) {
+//        // Check if the new username is already taken by another user
+//        if (!user.getUsername().equals(newUsername) && userRepository.findByUsername(newUsername) != null) {
+//            throw new BadRequestException("Username is already taken.");
+//        }
+//
+//        // Update the user's information
+//        user.setUsername(newUsername);
+//        user.setName(newName);
+//        user.setBio(newBio);
+//        userRepository.save(user);
+//    }
+
+    public void changeInfo(long userId, UserChangeInfoDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+
+        // Update the user's information
+        if (dto.getUsername() != null && !dto.getUsername().isBlank()) {
+            // Check if the new username is already taken by another user
+            String newUsername = dto.getUsername();
+            if (!user.getUsername().equals(newUsername) && userRepository.findByUsername(newUsername) != null) {
+                throw new UserAlreadyExistsException("Username is already taken.");
+            }
+            user.setUsername(newUsername);
+        }
+        if (dto.getName() != null) {
+            user.setName(dto.getName());
+        }
+        if (dto.getBio() != null) {
+            user.setBio(dto.getBio());
+        }
+
+        userRepository.save(user);
+    }
+
+//    public Page<UserBasicInfoDTO> getAllUserFollowers(long id, long userId) {
 //    }
 }

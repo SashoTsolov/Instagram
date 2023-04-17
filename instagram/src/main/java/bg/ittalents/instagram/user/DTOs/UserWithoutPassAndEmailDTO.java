@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class UserWithoutPassAndEmailDTO {
-    private Long id;
+    private long id;
     private String username;
     private String name;
     private String bio;
