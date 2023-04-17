@@ -17,7 +17,7 @@ public class StoryController extends AbstractController {
     // GET - localhost:8080/stories/1
     // View story by id
     @GetMapping("/{id}")
-    public void getStoryById(@PathVariable("id") Long storyId) {
+    public void getStoryById(@PathVariable("id") long storyId) {
         //TODO: implement method to retrieve the story with the given storyId
     }
 
@@ -38,7 +38,7 @@ public class StoryController extends AbstractController {
     // DELETE - localhost:8080/stories/1
     // Delete story
     @DeleteMapping("/{id}")
-    public void deleteStory(@PathVariable("id") Long storyId) {
+    public void deleteStory(@PathVariable("id") long storyId) {
         //TODO: implement method to delete the story with the given storyId
     }
 }

@@ -14,7 +14,6 @@ import bg.ittalents.instagram.location.Location;
 import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +23,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,7 +38,7 @@ public class PostService extends AbstractService {
 
 
     @Transactional
-    public PostWithoutCommentsDTO addPost(CreatePostDTO createPostDTO, Long loggedId) {
+    public PostWithoutCommentsDTO addPost(CreatePostDTO createPostDTO, long loggedId) {
 
         Optional<Location> location = locationRepository.findByName(createPostDTO.getLocation());
 
@@ -99,37 +97,51 @@ public class PostService extends AbstractService {
         }
     }
 
-    public PostWithCommentsDTO getPostById(Long id) {
+    public PostWithCommentsDTO getPostById(long id) {
         Post post = postRepository.findById(id).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         return mapper.map(post, PostWithCommentsDTO.class);
     }
 
-    public List<PostPreviewDTO> getUserPostsById(Long id) {
+    public Page<PostPreviewDTO> getUserPostsById(long id, Pageable pageable) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        User user = userRepository.findById(id).
-                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        List<Post> posts = postRepository.findByOwnerIdOrderByUploadDateDesc(user.getId());
-        return posts.stream()
-                .map(post -> mapper.map(post, PostPreviewDTO.class))
-                .collect(Collectors.toList());
+        return postRepository.findByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)
+                .map(this::postToPostPreviewDTO);
     }
+
+    private PostPreviewDTO postToPostPreviewDTO(Post post) {
+        PostPreviewDTO dto = mapper.map(post, PostPreviewDTO.class);
+        dto.setNumberOfLikes(post.getLikedBy().size());
+        dto.setNumberOfComments(post.getComments().size());
+        return dto;
+    }
+
 
     public Page<PostPreviewDTO> searchPostsByHashtags(String searchString, Pageable pageable) {
 
         Hashtag hashtag = hashtagRepository.findByName(searchString)
                 .orElseThrow(() -> new NotFoundException("No posts with this hashtag were found!"));
 
-        Page<PostPreviewDTO> postPreviews = hashtagRepository
-                .findPostsByHashtagNameSortedByDateTimeCreatedDesc(hashtag.getName(), pageable)
+        return postRepository
+                .findByHashtagNameSortedByDateTimeCreatedDesc(hashtag.getName(), pageable)
                 .map(post -> mapper.map(post, PostPreviewDTO.class));
-
-        return postPreviews;
     }
 
-    public PostWithoutCommentsDTO deletePost(Long postId, Long userId) {
+    public Page<PostPreviewDTO> searchPostsByLocation(String searchString, Pageable pageable) {
+
+        Location location = locationRepository.findByName(searchString)
+                .orElseThrow(() -> new NotFoundException("No posts with this location were found!"));
+
+        return postRepository
+                .findByLocationNameSortedByDateTimeCreatedDesc(location.getName(), pageable)
+                .map(post -> mapper.map(post, PostPreviewDTO.class));
+
+    }
+
+    public PostWithoutCommentsDTO deletePost(long postId, long userId) {
         Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
@@ -140,7 +152,7 @@ public class PostService extends AbstractService {
         return mapper.map(post, PostWithoutCommentsDTO.class);
     }
 
-    public PostWithoutCommentsDTO updateCaption(Long postId, CaptionDTO caption, Long userId) {
+    public PostWithoutCommentsDTO updateCaption(long postId, CaptionDTO caption, long userId) {
 
         Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
@@ -151,5 +163,29 @@ public class PostService extends AbstractService {
 
         post.setCaption(caption.getCaption());
         return mapper.map(postRepository.save(post), PostWithoutCommentsDTO.class);
+    }
+
+
+    public int likePost(long postId, long userId) {
+
+        User user = userRepository.findById(userId).
+                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
+        Post post = postRepository.findById(postId).
+                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
+
+
+        if (user.getLikedPosts().contains(post) || post.getLikedBy().contains(user)) {
+            user.getLikedPosts().remove(post);
+            post.getLikedBy().remove(user);
+        } else {
+            user.getLikedPosts().add(post);
+            post.getLikedBy().add(user);
+        }
+
+        userRepository.save(user);
+        postRepository.save(post);
+
+        return post.getLikedBy().size();
     }
 }

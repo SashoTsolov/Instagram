@@ -10,7 +10,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class PostPreviewDTO {
-    private Long id;
+    private long id;
     private List<String> mediaUrls;
     private int numberOfLikes;
     private int numberOfComments;

@@ -2,6 +2,7 @@ package bg.ittalents.instagram.util;
 
 import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.post.PostRepository;
+import bg.ittalents.instagram.post.PostService;
 import bg.ittalents.instagram.user.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ public abstract class AbstractService {
     protected UserRepository userRepository;
     @Autowired
     protected PostRepository postRepository;
+
     @Autowired
     protected BCryptPasswordEncoder encoder;
 
@@ -24,5 +26,4 @@ public abstract class AbstractService {
     protected User getUserById(long id){
         return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User was not found"));
     }
-
 }

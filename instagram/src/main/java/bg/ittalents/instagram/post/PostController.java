@@ -36,7 +36,8 @@ import java.util.Map;
 @RequestMapping
 public class PostController extends AbstractController {
 
-    private PostService postService;
+    @Autowired
+    protected PostService postService;
 
     @Autowired
     MediaService mediaService;
@@ -48,7 +49,7 @@ public class PostController extends AbstractController {
 
     // View post
     @GetMapping("/posts/{id}")
-    public ResponseEntity<PostWithCommentsDTO> getPostById(@PathVariable Long id, HttpSession session) {
+    public ResponseEntity<PostWithCommentsDTO> getPostById(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
         PostWithCommentsDTO dto = postService.getPostById(id);
         return new ResponseEntity<>(dto, HttpStatus.OK);
@@ -57,18 +58,34 @@ public class PostController extends AbstractController {
 
     // View user's posts sorted by upload date - DESC
     @GetMapping("users/{id}/posts")
-    public ResponseEntity<List<PostPreviewDTO>> getUserPostsById(@PathVariable Long id, HttpSession session) {
+    public ResponseEntity<Page<PostPreviewDTO>> getUserPostsById(
+            @RequestParam int page,
+            @RequestParam int size,
+            @PathVariable long id, HttpSession session) {
 
         getLoggedId(session);
-        List<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(id);
+        Page<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(
+                id,
+                PageRequest.of(page, size));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
     }
 
+    //     View all by location
+    @PostMapping("/posts/location")
+    public ResponseEntity<Page<PostPreviewDTO>> searchPostsByLocation(@RequestBody SearchRequestDTO searchRequestDTO) {
+        Page<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
+                searchRequestDTO.getSearchString(),
+                PageRequest.of(searchRequestDTO.getPage(),
+                        searchRequestDTO.getSize()));
+        return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
+    }
+
+
     // View all by hashtag
-    @PostMapping("/posts/search")
+    @PostMapping("/posts/hashtag")
     public ResponseEntity<Page<PostPreviewDTO>> searchPostsByHashtags(@RequestBody SearchRequestDTO searchRequestDTO) {
         Page<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
-                searchRequestDTO.getHashtag(),
+                searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
@@ -87,9 +104,10 @@ public class PostController extends AbstractController {
     // Add media
     @PostMapping("/posts/{id}/media")
     public ResponseEntity<PostWithoutCommentsDTO> addMedia(@RequestParam("file") List<MultipartFile> files,
-                                                           @PathVariable int id,
+                                                           @PathVariable long id,
                                                            HttpSession session) {
-        PostWithoutCommentsDTO dto = mediaService.upload(files, getLoggedId(session), id);
+        getLoggedId(session);
+        PostWithoutCommentsDTO dto = mediaService.upload(files, id);
         return new ResponseEntity<>(dto, HttpStatus.CREATED);
     }
 
@@ -104,7 +122,7 @@ public class PostController extends AbstractController {
 
     // Edit caption - localhost:8080/posts/1/caption
     @PutMapping("/posts/{id}/caption")
-    public ResponseEntity<PostWithoutCommentsDTO> updateCaption(@PathVariable Long id,
+    public ResponseEntity<PostWithoutCommentsDTO> updateCaption(@PathVariable long id,
                                                                 @RequestBody CaptionDTO caption,
                                                                 HttpSession session) {
         getLoggedId(session);
@@ -115,10 +133,18 @@ public class PostController extends AbstractController {
 
     //    // DELETE - localhost:8080/posts/1
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<PostWithoutCommentsDTO> deletePost(@PathVariable Long id, HttpSession session) {
+    public ResponseEntity<PostWithoutCommentsDTO> deletePost(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
         PostWithoutCommentsDTO dto = postService.deletePost(id, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
+    }
+
+    // Like/Unlike
+    @PostMapping("/posts/{id}/like")
+    public ResponseEntity<Integer> likePost(@PathVariable long id, HttpSession session) {
+        getLoggedId(session);
+        int numberOfLikes = postService.likePost(id, getLoggedId(session));
+        return new ResponseEntity<>(numberOfLikes, HttpStatus.OK);
     }
 }
 

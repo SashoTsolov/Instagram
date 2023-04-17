@@ -12,7 +12,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class PostWithoutCommentsDTO {
-    private Long id;
+    private long id;
     private String location;
     private String caption;
     private List<String> mediaUrls;

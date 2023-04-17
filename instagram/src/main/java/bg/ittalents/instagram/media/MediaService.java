@@ -30,8 +30,7 @@ public class MediaService {
     ModelMapper mediaMapper;
 
     @SneakyThrows
-    public PostWithoutCommentsDTO upload(List<MultipartFile> files, long loggedId, long postId) {
-
+    public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
 
         Post post = postRepository.findById(postId).orElseThrow(() -> new NotFoundException("Post doesn't exist"));
 
