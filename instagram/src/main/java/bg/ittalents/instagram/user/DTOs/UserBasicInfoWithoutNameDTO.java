@@ -9,7 +9,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UserBasicInfoWithoutNameDTO {
 
-    private Long id;
+    private long id;
     private String username;
     private String profilePictureUrl;
 }
