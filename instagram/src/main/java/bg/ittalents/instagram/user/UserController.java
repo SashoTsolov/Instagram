@@ -1,14 +1,12 @@
 package bg.ittalents.instagram.user;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,14 +26,14 @@ public class UserController extends AbstractController {
 
     // GET localhost:8080/users/2
     @GetMapping("/{id}")
-    public UserWithoutPassAndEmailDTO getUserById(@PathVariable Long id, HttpSession s) {
+    public UserWithoutPassAndEmailDTO getUserById(@PathVariable long id, HttpSession s) {
         getLoggedId(s);
         return userService.getById(id);
     }
 
     // GET localhost:8080/users/1/followers
 //    @GetMapping("/{id}/followers")
-//    public Page<UserBasicInfoDTO> getFollowers(@PathVariable Long id, HttpSession s) {
+//    public Page<UserBasicInfoDTO> getFollowers(@PathVariable long id, HttpSession s) {
 //        long userId = getLoggedId(s);
 //        return userService.getAllUserFollowers(id, userId);
 //    }
@@ -93,14 +91,14 @@ public class UserController extends AbstractController {
 
     // POST localhost:8080/users/2/block
     @PostMapping("/{id}/block")
-    public void blockUser(@PathVariable("id") Long blockedId, HttpSession s) {
+    public void blockUser(@PathVariable("id") long blockedId, HttpSession s) {
         long blockingUserId = getLoggedId(s);
         userService.block(blockingUserId, blockedId);
     }
 
      //POST localhost:8080/users/2/follow
     @PostMapping("/{id}/follow")
-    public int followUser(@PathVariable("id") Long followedId, HttpSession s) {
+    public int followUser(@PathVariable("id") long followedId, HttpSession s) {
         long followerId = getLoggedId(s);
         return userService.follow(followerId, followedId);
     }
@@ -118,25 +116,31 @@ public class UserController extends AbstractController {
         long userId = getLoggedId(s);
         userService.changePassword(userId, dto);
     }
-//
-//    // PUT localhost:8080/users/info
-//    @PutMapping("/info")
-//    public void updateUserInfo(@RequestBody UserChangeInfoDTO dto, HttpSession s) {
-//        long userId = getLoggedId(s);
-//        userService.changeInfo(userId, dto);
-//    }
-//
-//    // PUT localhost:8080/users/deactivate
-//    @PutMapping("/deactivate")
-//    public void deactivateUser(UserPasswordDTO dto, HttpSession s) {
-//        long userId = getLoggedId(s);
-//        userService.deactiveAccount(userId, dto);
-//    }
+
+    // PUT localhost:8080/users/info
+    @PutMapping("/info")
+    public void updateUserInfo(@Valid @RequestBody UserChangeInfoDTO dto, HttpSession s) {
+        long userId = getLoggedId(s);
+        userService.changeInfo(userId, dto);
+    }
+
+    // PUT localhost:8080/users/deactivate
+    @PutMapping("/deactivate")
+    public ResponseEntity<String> deactivateUser(HttpSession session, @RequestBody UserPasswordDTO dto) {
+        long userId = getLoggedId(session);
+        boolean success = userService.deactivateUser(userId, dto);
+        if (success) {
+            session.invalidate();
+            return ResponseEntity.ok("User deactivated successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect password");
+        }
+    }
 
     // DELETE localhost:8080/users
     @DeleteMapping
     public void deleteUser(@RequestBody UserPasswordDTO dto, HttpSession session) {
-        Long userId = getLoggedId(session);
+        long userId = getLoggedId(session);
         userService.deleteUserById(userId, dto);
         session.invalidate();
     }

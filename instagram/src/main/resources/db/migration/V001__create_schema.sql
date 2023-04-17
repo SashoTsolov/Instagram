@@ -18,7 +18,7 @@ CREATE TABLE users (
 CREATE TABLE followers (
   following_user_id BIGINT,
   followed_user_id BIGINT,
-  date_time_of_follow TIMESTAMP,-- NOT NULL,
+  date_time_of_follow TIMESTAMP, -- NOT NULL,
   PRIMARY KEY (following_user_id, followed_user_id),
   FOREIGN KEY (following_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (followed_user_id) REFERENCES users(id) ON DELETE CASCADE
