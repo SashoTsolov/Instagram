@@ -19,7 +19,7 @@ public class Media {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
 
     @Column(name = "media_url", nullable = false)
     private String mediaUrl;

@@ -38,7 +38,7 @@ public class PostService extends AbstractService {
 
 
     @Transactional
-    public PostWithoutCommentsDTO addPost(CreatePostDTO createPostDTO, Long loggedId) {
+    public PostWithoutCommentsDTO addPost(CreatePostDTO createPostDTO, long loggedId) {
 
         Optional<Location> location = locationRepository.findByName(createPostDTO.getLocation());
 
@@ -97,23 +97,28 @@ public class PostService extends AbstractService {
         }
     }
 
-    public PostWithCommentsDTO getPostById(Long id) {
+    public PostWithCommentsDTO getPostById(long id) {
         Post post = postRepository.findById(id).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         return mapper.map(post, PostWithCommentsDTO.class);
     }
 
-    public List<PostPreviewDTO> getUserPostsById(Long id) {
+    public Page<PostPreviewDTO> getUserPostsById(long id, Pageable pageable) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        User user = userRepository.findById(id).
-                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        List<Post> posts = postRepository.findByOwnerIdOrderByUploadDateDesc(user.getId());
-        return posts.stream()
-                .map(post -> mapper.map(post, PostPreviewDTO.class))
-                .collect(Collectors.toList());
+        return postRepository.findByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)
+                .map(this::postToPostPreviewDTO);
     }
+
+    private PostPreviewDTO postToPostPreviewDTO(Post post) {
+        PostPreviewDTO dto = mapper.map(post, PostPreviewDTO.class);
+        dto.setNumberOfLikes(post.getLikedBy().size());
+        dto.setNumberOfComments(post.getComments().size());
+        return dto;
+    }
+
 
     public Page<PostPreviewDTO> searchPostsByHashtags(String searchString, Pageable pageable) {
 
@@ -136,7 +141,7 @@ public class PostService extends AbstractService {
 
     }
 
-    public PostWithoutCommentsDTO deletePost(Long postId, Long userId) {
+    public PostWithoutCommentsDTO deletePost(long postId, long userId) {
         Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
@@ -147,7 +152,7 @@ public class PostService extends AbstractService {
         return mapper.map(post, PostWithoutCommentsDTO.class);
     }
 
-    public PostWithoutCommentsDTO updateCaption(Long postId, CaptionDTO caption, Long userId) {
+    public PostWithoutCommentsDTO updateCaption(long postId, CaptionDTO caption, long userId) {
 
         Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
@@ -161,4 +166,26 @@ public class PostService extends AbstractService {
     }
 
 
+    public int likePost(long postId, long userId) {
+
+        User user = userRepository.findById(userId).
+                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
+        Post post = postRepository.findById(postId).
+                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
+
+
+        if (user.getLikedPosts().contains(post) || post.getLikedBy().contains(user)) {
+            user.getLikedPosts().remove(post);
+            post.getLikedBy().remove(user);
+        } else {
+            user.getLikedPosts().add(post);
+            post.getLikedBy().add(user);
+        }
+
+        userRepository.save(user);
+        postRepository.save(post);
+
+        return post.getLikedBy().size();
+    }
 }

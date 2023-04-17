@@ -19,7 +19,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE owner_id = ?1
             ORDER BY date_time_created DESC
             """, nativeQuery = true)
-    List<Post> findByOwnerIdOrderByUploadDateDesc(Long ownerId);
+    Page<Post> findByOwnerIdOrderByUploadDateDesc(Long ownerId, Pageable pageable);
 
     @Query(value = """
             SELECT 
