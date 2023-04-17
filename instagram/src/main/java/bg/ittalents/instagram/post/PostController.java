@@ -64,11 +64,23 @@ public class PostController extends AbstractController {
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
     }
 
+//     View all by location
+    @PostMapping("/posts/location")
+    public ResponseEntity<Page<PostPreviewDTO>> searchPostsByLocation(@RequestBody SearchRequestDTO searchRequestDTO) {
+        Page<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
+                searchRequestDTO.getSearchString(),
+                PageRequest.of(searchRequestDTO.getPage(),
+                        searchRequestDTO.getSize()));
+        return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
+    }
+
+
+
     // View all by hashtag
-    @PostMapping("/posts/search")
+    @PostMapping("/posts/hashtag")
     public ResponseEntity<Page<PostPreviewDTO>> searchPostsByHashtags(@RequestBody SearchRequestDTO searchRequestDTO) {
         Page<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
-                searchRequestDTO.getHashtag(),
+                searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);

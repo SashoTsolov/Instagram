@@ -14,7 +14,6 @@ import bg.ittalents.instagram.location.Location;
 import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +23,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -122,11 +120,20 @@ public class PostService extends AbstractService {
         Hashtag hashtag = hashtagRepository.findByName(searchString)
                 .orElseThrow(() -> new NotFoundException("No posts with this hashtag were found!"));
 
-        Page<PostPreviewDTO> postPreviews = hashtagRepository
-                .findPostsByHashtagNameSortedByDateTimeCreatedDesc(hashtag.getName(), pageable)
+        return postRepository
+                .findByHashtagNameSortedByDateTimeCreatedDesc(hashtag.getName(), pageable)
+                .map(post -> mapper.map(post, PostPreviewDTO.class));
+    }
+
+    public Page<PostPreviewDTO> searchPostsByLocation(String searchString, Pageable pageable) {
+
+        Location location = locationRepository.findByName(searchString)
+                .orElseThrow(() -> new NotFoundException("No posts with this location were found!"));
+
+        return postRepository
+                .findByLocationNameSortedByDateTimeCreatedDesc(location.getName(), pageable)
                 .map(post -> mapper.map(post, PostPreviewDTO.class));
 
-        return postPreviews;
     }
 
     public PostWithoutCommentsDTO deletePost(Long postId, Long userId) {
@@ -152,4 +159,6 @@ public class PostService extends AbstractService {
         post.setCaption(caption.getCaption());
         return mapper.map(postRepository.save(post), PostWithoutCommentsDTO.class);
     }
+
+
 }
