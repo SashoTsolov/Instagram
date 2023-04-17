@@ -9,7 +9,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SearchRequestDTO {
 
-    private String hashtag;
+    private String searchString;
     private int page;
     private int size;
 }
