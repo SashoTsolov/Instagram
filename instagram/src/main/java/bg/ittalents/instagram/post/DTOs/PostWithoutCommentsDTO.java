@@ -1,7 +1,6 @@
 package bg.ittalents.instagram.post.DTOs;
 
 import bg.ittalents.instagram.user.DTOs.UserBasicInfoDTO;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
