@@ -1,6 +1,5 @@
 package bg.ittalents.instagram.post.DTOs;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,4 +15,3 @@ public class PostPreviewDTO {
     private int numberOfLikes;
     private int numberOfComments;
 }
-
