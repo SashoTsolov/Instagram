@@ -142,7 +142,6 @@ public class PostController extends AbstractController {
     // Like/Unlike
     @PostMapping("/posts/{id}/like")
     public ResponseEntity<Integer> likePost(@PathVariable long id, HttpSession session) {
-        getLoggedId(session);
         int numberOfLikes = postService.likePost(id, getLoggedId(session));
         return new ResponseEntity<>(numberOfLikes, HttpStatus.OK);
     }

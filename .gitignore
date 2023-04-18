@@ -34,3 +34,4 @@ target/
 *.iws
 *.ipr
 application.yml
+upload_user_posts_media/
