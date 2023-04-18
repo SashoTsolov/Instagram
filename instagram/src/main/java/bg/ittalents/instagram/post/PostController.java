@@ -122,20 +122,20 @@ public class PostController extends AbstractController {
 
     // Edit caption - localhost:8080/posts/1/caption
     @PutMapping("/posts/{id}/caption")
-    public ResponseEntity<PostWithoutCommentsDTO> updateCaption(@PathVariable long id,
+    public ResponseEntity<PostWithCommentsDTO> updateCaption(@PathVariable long id,
                                                                 @RequestBody CaptionDTO caption,
                                                                 HttpSession session) {
         getLoggedId(session);
-        PostWithoutCommentsDTO dto = postService.updateCaption(id, caption, getLoggedId(session));
+        PostWithCommentsDTO dto = postService.updateCaption(id, caption, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
 
-    //    // DELETE - localhost:8080/posts/1
+    // DELETE - localhost:8080/posts/1
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<PostWithoutCommentsDTO> deletePost(@PathVariable long id, HttpSession session) {
+    public ResponseEntity<PostWithCommentsDTO> deletePost(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
-        PostWithoutCommentsDTO dto = postService.deletePost(id, getLoggedId(session));
+        PostWithCommentsDTO dto = postService.deletePost(id, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
@@ -146,5 +146,26 @@ public class PostController extends AbstractController {
         int numberOfLikes = postService.likePost(id, getLoggedId(session));
         return new ResponseEntity<>(numberOfLikes, HttpStatus.OK);
     }
+
+    @PostMapping("/posts/{id}/save")
+    public ResponseEntity<PostWithCommentsDTO> savePost(@PathVariable long id, HttpSession session) {
+        getLoggedId(session);
+        PostWithCommentsDTO dto = postService.savePost(id, getLoggedId(session));
+        return new ResponseEntity<>(dto, HttpStatus.OK);
+    }
+
+    // View my saved posts
+    @GetMapping("/posts/saved")
+    public ResponseEntity<Page<PostPreviewDTO>> getUserSavedPosts(
+            @RequestParam int page,
+            @RequestParam int size,
+            HttpSession session) {
+        getLoggedId(session);
+        Page<PostPreviewDTO> savedPosts = postService.getUserSavedPosts(getLoggedId(session),
+                PageRequest.of(page, size));
+        return new ResponseEntity<>(savedPosts, HttpStatus.OK);
+    }
+
+
 }
 

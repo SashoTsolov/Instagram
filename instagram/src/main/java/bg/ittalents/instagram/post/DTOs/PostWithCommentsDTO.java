@@ -2,6 +2,7 @@ package bg.ittalents.instagram.post.DTOs;
 
 import bg.ittalents.instagram.comment.DTOs.CommentWithoutRepliesDTO;
 import bg.ittalents.instagram.user.DTOs.UserBasicInfoDTO;
+import bg.ittalents.instagram.user.DTOs.UserBasicInfoWithoutNameDTO;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,7 +19,7 @@ public class PostWithCommentsDTO {
     private String location;
     private String caption;
     private List<String> mediaUrls;
-    private UserBasicInfoDTO owner;
+    private UserBasicInfoWithoutNameDTO owner;
     private List<CommentWithoutRepliesDTO> comments;
     private int numberOfLikes;
     private int numberOfComments;
