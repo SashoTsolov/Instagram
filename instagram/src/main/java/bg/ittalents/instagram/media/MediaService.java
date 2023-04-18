@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,30 +33,31 @@ public class MediaService {
     @SneakyThrows
     public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
 
-        Post post = postRepository.findById(postId).orElseThrow(() -> new NotFoundException("Post doesn't exist"));
+        Post post = postRepository.findByIdNotCreated(postId)
+                .orElseThrow(() -> new NotFoundException("Post doesn't exist"));
 
-        if(post.getIsCreated()) {
+        if (post.getIsCreated()) {
             throw new BadRequestException("You cannot add media to an already created post!");
         }
+        List<Media> allMedia = new ArrayList<>();
         for (MultipartFile file : files) {
             final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
             final String name = UUID.randomUUID().toString() + "." + ext;
-            final File dir = new File("uploads");
+            final File dir = new File("upload_user_posts_media");
             if (!dir.exists()) {
                 dir.mkdirs();
             }
             File f = new File(dir, name);
             Files.copy(file.getInputStream(), f.toPath());
             String url = dir.getName() + File.separator + f.getName();
-
-
+            
             Media media = new Media();
             media.setMediaUrl(url);
             media.setPost(post);
-            mediaRepository.save(media);
-
+            allMedia.add(media);
             post.getMediaUrls().add(media);
         }
+        mediaRepository.saveAll(allMedia);
 
         post.setIsCreated(true);
         postRepository.save(post);
@@ -63,10 +65,10 @@ public class MediaService {
     }
 
     public File download(String fileName) {
-        File dir = new File("uploads");
-        File f = new File(dir, fileName);
-        if (f.exists()) {
-            return f;
+        File dir = new File("upload_user_posts_media");
+        File file = new File(dir, fileName);
+        if (file.exists()) {
+            return file;
         }
         throw new NotFoundException("File not found");
     }
