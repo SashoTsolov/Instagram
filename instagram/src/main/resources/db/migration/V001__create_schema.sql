@@ -1,5 +1,7 @@
 CREATE TABLE users (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  reset_identifier VARCHAR(100) UNIQUE,
+  reset_identifier_expiry TIMESTAMP,
   username VARCHAR(50) NOT NULL UNIQUE,
   password VARCHAR(100) NOT NULL,
   email VARCHAR(50) NOT NULL UNIQUE,
@@ -11,6 +13,7 @@ CREATE TABLE users (
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
   verification_code VARCHAR(100) NOT NULL UNIQUE,
+  -- //TODO expire time of verification code;
   date_time_created TIMESTAMP NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
