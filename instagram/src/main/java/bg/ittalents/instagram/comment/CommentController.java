@@ -35,6 +35,17 @@ public class CommentController extends AbstractController {
         return new ResponseEntity<>(replies, HttpStatus.OK);
     }
 
+    @GetMapping("/posts/{id}/comments")
+    public ResponseEntity<Slice<CommentDTO>> viewParentCommentsByPost(@RequestParam int page,
+                                                                @RequestParam int size,
+                                                                @PathVariable long id,
+                                                                HttpSession session) {
+        getLoggedId(session);
+        Slice<CommentDTO> comments = commentService.getPostComments(id,
+                PageRequest.of(page, size));
+        return new ResponseEntity<>(comments, HttpStatus.OK);
+    }
+
     // POST - localhost:8080/comments/1/like
     // Like/Unlike comment
     @PostMapping("/comments/{id}/like")

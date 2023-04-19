@@ -181,4 +181,6 @@ public class PostController extends AbstractController {
                 PageRequest.of(page, size));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
     }
+
+
 }

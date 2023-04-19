@@ -11,6 +11,7 @@ import bg.ittalents.instagram.user.UserRepository;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -114,5 +115,14 @@ public class CommentService {
         comment.setOwner(owner);
         comment.setParent(parentComment);
         return mapper.map(commentRepository.save(comment), CommentDTO.class);
+    }
+
+    public Slice<CommentDTO> getPostComments(long id, Pageable pageable) {
+
+        postRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The post doesn't exist"));
+
+        return commentRepository.findParentCommentsByPostIdOrderByNumberOfLikes(id, pageable)
+                .map(comment -> commentToCommentDTO(comment));
     }
 }
