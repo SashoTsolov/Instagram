@@ -37,6 +37,7 @@ CREATE TABLE posts (
   owner_id BIGINT NOT NULL,
   location_id BIGINT,
   is_story TINYINT NOT NULL,
+  is_visible TINYINT, -- NOT NULL,
   caption TEXT,
   is_created TINYINT,
   date_time_created TIMESTAMP NOT NULL,

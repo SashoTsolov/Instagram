@@ -1,13 +1,13 @@
 package bg.ittalents.instagram.post;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -16,15 +16,30 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             SELECT
                 *
             FROM posts
-            WHERE owner_id = ?1
+            WHERE id = ?1
+            """, nativeQuery = true)
+    Optional<Post> findByIdNotCreated(long id);
+
+    @Query(value = """
+            SELECT
+                *
+            FROM posts
+            WHERE id = ?1 AND is_created = 1
+            """, nativeQuery = true)
+    Optional<Post> findById(long id);
+    @Query(value = """
+            SELECT
+                *
+            FROM posts
+            WHERE owner_id = ?1 AND is_created = 1
             ORDER BY date_time_created DESC
             """, nativeQuery = true)
-    Page<Post> findByOwnerIdOrderByUploadDateDesc(Long ownerId, Pageable pageable);
+    Slice<Post> findByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
 
     @Query(value = """
             SELECT 
                 p.* 
-            FROM posts p 
+            FROM posts AS p 
             JOIN posts_have_hashtags phh 
             ON p.id = phh.post_id 
             JOIN hashtags h 
@@ -32,21 +47,57 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE h.name = :hashtagName AND p.is_created = 1
             ORDER BY p.date_time_created DESC""",
             nativeQuery = true)
-    Page<Post> findByHashtagNameSortedByDateTimeCreatedDesc(@Param("hashtagName") String hashtagName,
-                                                            Pageable pageable);
+    Slice<Post> findByHashtagNameSortedByDateTimeCreatedDesc(@Param("hashtagName") String hashtagName,
+                                                             Pageable pageable);
 
 
     @Query(value = """
             SELECT 
                 p.* 
-            FROM posts p 
-            JOIN locations l 
+            FROM posts AS p 
+            JOIN locations AS l 
             ON p.location_id = l.id 
             WHERE l.name = :locationName AND p.is_created = 1
             ORDER BY p.date_time_created 
             DESC""",
             nativeQuery = true)
-    Page<Post> findByLocationNameSortedByDateTimeCreatedDesc(@Param("locationName") String locationName,
+    Slice<Post> findByLocationNameSortedByDateTimeCreatedDesc(@Param("locationName") String locationName,
                                                              Pageable pageable);
+    @Query(value = """
+            SELECT
+                *
+            FROM posts AS p
+            JOIN users_save_posts AS usp 
+            ON p.id = usp.post_id
+            WHERE usp.user_id = ?1 AND p.is_created = 1
+            ORDER BY p.date_time_created DESC
+            """, nativeQuery = true)
+    Slice<Post> findAllSavedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
 
+
+    @Query(value = """
+            SELECT
+                *
+            FROM posts AS p
+            JOIN users_have_tagged_posts AS uhtp 
+            ON p.id = uhtp.post_id
+            WHERE uhtp.user_id = ?1 AND p.is_created = 1
+            ORDER BY p.date_time_created DESC
+            """, nativeQuery = true)
+    Slice<Post> findAllUserTaggedOrderByUploadDateDesc(long ownerId, Pageable pageable);
+
+
+    @Query(value = """
+            SELECT p.*
+            FROM posts p
+            JOIN users u 
+            ON p.owner_id = u.id
+            JOIN followers f 
+            ON u.id = f.followed_user_id
+            WHERE f.following_user_id = :userId
+            AND p.is_created = 1
+            AND p.date_time_created > CURRENT_TIMESTAMP - INTERVAL 2 DAY
+            ORDER BY p.date_time_created DESC
+            """, nativeQuery = true)
+    Slice<Post> findAllByUserFollowersOrderByUploadDateDesc(long userId, Pageable pageable);
 }
