@@ -12,8 +12,6 @@ import lombok.Setter;
 public class UserChangePasswordDTO {
 
         @NotBlank
-        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
-                message = "Weak password")
         private String currentPassword;
 
         @NotBlank
