@@ -1,5 +1,8 @@
 package bg.ittalents.instagram.post;
 
+import bg.ittalents.instagram.comment.Comment;
+import bg.ittalents.instagram.comment.CommentRepository;
+import bg.ittalents.instagram.comment.DTOs.CommentDTO;
 import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.exceptions.UnauthorizedException;
 import bg.ittalents.instagram.hashtag.Hashtag;
@@ -15,8 +18,8 @@ import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,13 +39,16 @@ public class PostService extends AbstractService {
     @Autowired
     HashtagRepository hashtagRepository;
 
+    @Autowired
+    CommentRepository commentRepository;
+
 
     @Transactional
     public PostWithoutCommentsDTO addPost(CreatePostDTO createPostDTO, long loggedId) {
 
         Optional<Location> location = locationRepository.findByName(createPostDTO.getLocation());
 
-        Location newLocation = newLocation = new Location();
+        Location newLocation = new Location();
         newLocation.setName(createPostDTO.getLocation());
         if (location.isEmpty()) {
             newLocation = locationRepository.save(newLocation);
@@ -97,14 +103,14 @@ public class PostService extends AbstractService {
         }
     }
 
-    public PostWithCommentsDTO getPostById(long id) {
+    public PostWithCommentsDTO getPostById(long id, Pageable pageable) {
         Post post = postRepository.findById(id).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
-        return postToPostWithCommentsDTO(post);
+        return postToPostWithCommentsDTO(post, pageable);
     }
 
-    public Page<PostPreviewDTO> getUserPostsById(long id, Pageable pageable) {
+    public Slice<PostPreviewDTO> getUserPostsById(long id, Pageable pageable) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
@@ -112,22 +118,37 @@ public class PostService extends AbstractService {
                 .map(post -> postToPostPreviewDTO(post));
     }
 
-    private PostWithCommentsDTO postToPostWithCommentsDTO(Post post) {
+
+    private PostWithCommentsDTO postToPostWithCommentsDTO(Post post, Pageable pageable) {
         PostWithCommentsDTO dto = mapper.map(post, PostWithCommentsDTO.class);
         dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(post.getComments().size());
+        dto.setNumberOfComments(commentRepository.countAllByPostId(post.getId()));
+
+        Slice<Comment> comments = commentRepository.findParentCommentsByPostIdOrderByNumberOfLikes(
+                post.getId(),
+                pageable);
+        List<CommentDTO> commentDTOs = comments.getContent().stream()
+                .map(comment -> {
+                    CommentDTO commentDTO = mapper.map(comment, CommentDTO.class);
+                    commentDTO.setNumberOfLikes(comment.getLikedBy().size());
+                    commentDTO.setNumberOfReplies(comment.getReplies().size());
+                    return commentDTO;
+                })
+                .collect(Collectors.toList());
+
+        dto.setComments(commentDTOs);
         return dto;
     }
 
     private PostPreviewDTO postToPostPreviewDTO(Post post) {
         PostPreviewDTO dto = mapper.map(post, PostPreviewDTO.class);
         dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(post.getComments().size());
+        dto.setNumberOfComments(commentRepository.countAllByPostId(post.getId()));
         return dto;
     }
 
 
-    public Page<PostPreviewDTO> searchPostsByHashtags(String searchString, Pageable pageable) {
+    public Slice<PostPreviewDTO> searchPostsByHashtags(String searchString, Pageable pageable) {
 
         Hashtag hashtag = hashtagRepository.findByName(searchString)
                 .orElseThrow(() -> new NotFoundException("No posts with this hashtag were found!"));
@@ -137,7 +158,7 @@ public class PostService extends AbstractService {
                 .map(post -> postToPostPreviewDTO(post));
     }
 
-    public Page<PostPreviewDTO> searchPostsByLocation(String searchString, Pageable pageable) {
+    public Slice<PostPreviewDTO> searchPostsByLocation(String searchString, Pageable pageable) {
 
         Location location = locationRepository.findByName(searchString)
                 .orElseThrow(() -> new NotFoundException("No posts with this location were found!"));
@@ -148,7 +169,7 @@ public class PostService extends AbstractService {
 
     }
 
-    public PostWithCommentsDTO deletePost(long postId, long userId) {
+    public String deletePost(long postId, long userId) {
         Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
@@ -156,10 +177,11 @@ public class PostService extends AbstractService {
             throw new UnauthorizedException("You can't delete post that is not yours!");
         }
         postRepository.delete(post);
-        return postToPostWithCommentsDTO(post);
+        return "Post" + post.getId() + "deleted successfully!";
+//        return "postToPostWithCommentsDTO(post)";
     }
 
-    public PostWithCommentsDTO updateCaption(long postId, CaptionDTO caption, long userId) {
+    public String updateCaption(long postId, CaptionDTO caption, long userId) {
 
         Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
@@ -170,7 +192,8 @@ public class PostService extends AbstractService {
 
         post.setCaption(caption.getCaption());
         postRepository.save(post);
-        return postToPostWithCommentsDTO(post);
+        return "Updated Successfully!";
+//        return postToPostWithCommentsDTO(post);
     }
 
     @Transactional
@@ -196,7 +219,7 @@ public class PostService extends AbstractService {
     }
 
     @Transactional
-    public PostWithCommentsDTO savePost(long postId, long userId) {
+    public String savePost(long postId, long userId) {
 
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new NotFoundException("The user doesn't exist"));
@@ -213,10 +236,11 @@ public class PostService extends AbstractService {
         }
 
         userRepository.save(user);
-        return postToPostWithCommentsDTO(post);
+        return "Saved Successfully!";
+//        return postToPostWithCommentsDTO(post);
     }
 
-    public Page<PostPreviewDTO> getUserSavedPosts(long loggedId, Pageable pageable) {
+    public Slice<PostPreviewDTO> getUserSavedPosts(long loggedId, Pageable pageable) {
 
         User user = userRepository.findById(loggedId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));

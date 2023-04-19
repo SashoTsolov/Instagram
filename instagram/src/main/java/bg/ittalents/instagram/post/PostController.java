@@ -12,8 +12,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -49,22 +49,26 @@ public class PostController extends AbstractController {
 
     // View post
     @GetMapping("/posts/{id}")
-    public ResponseEntity<PostWithCommentsDTO> getPostById(@PathVariable long id, HttpSession session) {
+    public ResponseEntity<PostWithCommentsDTO> getPostById(
+            @PathVariable long id,
+            @RequestParam int page,
+            @RequestParam int size,
+            HttpSession session) {
         getLoggedId(session);
-        PostWithCommentsDTO dto = postService.getPostById(id);
+        PostWithCommentsDTO dto = postService.getPostById(id, PageRequest.of(page, size));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
 
     // View user's posts sorted by upload date - DESC
     @GetMapping("users/{id}/posts")
-    public ResponseEntity<Page<PostPreviewDTO>> getUserPostsById(
+    public ResponseEntity<Slice<PostPreviewDTO>> getUserPostsById(
             @RequestParam int page,
             @RequestParam int size,
             @PathVariable long id, HttpSession session) {
 
         getLoggedId(session);
-        Page<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(
+        Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(
                 id,
                 PageRequest.of(page, size));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
@@ -72,8 +76,8 @@ public class PostController extends AbstractController {
 
     //     View all by location
     @PostMapping("/posts/location")
-    public ResponseEntity<Page<PostPreviewDTO>> searchPostsByLocation(@RequestBody SearchRequestDTO searchRequestDTO) {
-        Page<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
+    public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByLocation(@RequestBody SearchRequestDTO searchRequestDTO) {
+        Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
                 searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
@@ -83,8 +87,8 @@ public class PostController extends AbstractController {
 
     // View all by hashtag
     @PostMapping("/posts/hashtag")
-    public ResponseEntity<Page<PostPreviewDTO>> searchPostsByHashtags(@RequestBody SearchRequestDTO searchRequestDTO) {
-        Page<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
+    public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByHashtags(@RequestBody SearchRequestDTO searchRequestDTO) {
+        Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
                 searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
@@ -122,20 +126,20 @@ public class PostController extends AbstractController {
 
     // Edit caption - localhost:8080/posts/1/caption
     @PutMapping("/posts/{id}/caption")
-    public ResponseEntity<PostWithCommentsDTO> updateCaption(@PathVariable long id,
-                                                                @RequestBody CaptionDTO caption,
-                                                                HttpSession session) {
+    public ResponseEntity<String> updateCaption(@PathVariable long id,
+                                                             @RequestBody CaptionDTO caption,
+                                                             HttpSession session) {
         getLoggedId(session);
-        PostWithCommentsDTO dto = postService.updateCaption(id, caption, getLoggedId(session));
+        String dto = postService.updateCaption(id, caption, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
 
     // DELETE - localhost:8080/posts/1
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<PostWithCommentsDTO> deletePost(@PathVariable long id, HttpSession session) {
+    public ResponseEntity<String> deletePost(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
-        PostWithCommentsDTO dto = postService.deletePost(id, getLoggedId(session));
+        String dto = postService.deletePost(id, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
@@ -147,24 +151,21 @@ public class PostController extends AbstractController {
     }
 
     @PostMapping("/posts/{id}/save")
-    public ResponseEntity<PostWithCommentsDTO> savePost(@PathVariable long id, HttpSession session) {
+    public ResponseEntity<String> savePost(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
-        PostWithCommentsDTO dto = postService.savePost(id, getLoggedId(session));
+        String dto = postService.savePost(id, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
     // View my saved posts
     @GetMapping("/posts/saved")
-    public ResponseEntity<Page<PostPreviewDTO>> getUserSavedPosts(
+    public ResponseEntity<Slice<PostPreviewDTO>> getUserSavedPosts(
             @RequestParam int page,
             @RequestParam int size,
             HttpSession session) {
         getLoggedId(session);
-        Page<PostPreviewDTO> savedPosts = postService.getUserSavedPosts(getLoggedId(session),
+        Slice<PostPreviewDTO> savedPosts = postService.getUserSavedPosts(getLoggedId(session),
                 PageRequest.of(page, size));
         return new ResponseEntity<>(savedPosts, HttpStatus.OK);
     }
-
-
 }
-

@@ -1,7 +1,7 @@
 package bg.ittalents.instagram.post;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,7 +35,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE owner_id = ?1 AND is_created = 1
             ORDER BY date_time_created DESC
             """, nativeQuery = true)
-    Page<Post> findByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
+    Slice<Post> findByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
 
     @Query(value = """
             SELECT 
@@ -48,8 +48,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE h.name = :hashtagName AND p.is_created = 1
             ORDER BY p.date_time_created DESC""",
             nativeQuery = true)
-    Page<Post> findByHashtagNameSortedByDateTimeCreatedDesc(@Param("hashtagName") String hashtagName,
-                                                            Pageable pageable);
+    Slice<Post> findByHashtagNameSortedByDateTimeCreatedDesc(@Param("hashtagName") String hashtagName,
+                                                             Pageable pageable);
 
 
     @Query(value = """
@@ -62,7 +62,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             ORDER BY p.date_time_created 
             DESC""",
             nativeQuery = true)
-    Page<Post> findByLocationNameSortedByDateTimeCreatedDesc(@Param("locationName") String locationName,
+    Slice<Post> findByLocationNameSortedByDateTimeCreatedDesc(@Param("locationName") String locationName,
                                                              Pageable pageable);
     @Query(value = """
             SELECT
@@ -73,5 +73,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE usp.user_id = ?1 AND p.is_created = 1
             ORDER BY p.date_time_created DESC
             """, nativeQuery = true)
-    Page<Post> findTaggedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
+    Slice<Post> findTaggedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
 }
