@@ -18,6 +18,7 @@ import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -200,6 +201,13 @@ public class PostService extends AbstractService {
         return dto;
     }
 
+    private PostWithoutCommentsDTO postToPostWithoutCommentsDTO(Post post) {
+        PostWithoutCommentsDTO dto = mapper.map(post, PostWithoutCommentsDTO.class);
+        dto.setNumberOfLikes(post.getLikedBy().size());
+        dto.setNumberOfComments(commentRepository.countAllByPostId(post.getId()));
+        return dto;
+    }
+
 
     public Slice<PostPreviewDTO> searchPostsByHashtags(String searchString, Pageable pageable) {
 
@@ -296,10 +304,7 @@ public class PostService extends AbstractService {
 
     public Slice<PostPreviewDTO> getUserSavedPosts(long loggedId, Pageable pageable) {
 
-        User user = userRepository.findById(loggedId)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        return postRepository.findSavedByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)
+        return postRepository.findAllSavedByOwnerIdOrderByUploadDateDesc(loggedId, pageable)
                 .map(post -> postToPostPreviewDTO(post));
     }
 
@@ -308,7 +313,14 @@ public class PostService extends AbstractService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        return postRepository.findTaggedByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)
+        return postRepository.findAllUserTaggedOrderByUploadDateDesc(user.getId(), pageable)
                 .map(post -> postToPostPreviewDTO(post));
+    }
+
+    public Slice<PostWithoutCommentsDTO> getPostsFromFeed(long loggedId, Pageable pageable) {
+
+        return postRepository.findAllByUserFollowersOrderByUploadDateDesc(loggedId, pageable)
+                .map(post -> postToPostWithoutCommentsDTO(post));
+
     }
 }

@@ -182,5 +182,16 @@ public class PostController extends AbstractController {
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
     }
 
+    // View recent posts from followed users - Feed
+    @GetMapping("/posts")
+    public ResponseEntity<Slice<PostWithoutCommentsDTO>> getPostsFromFeed(
+            @RequestParam int page,
+            @RequestParam int size,
+            HttpSession session) {
 
+        Slice<PostWithoutCommentsDTO> feed = postService.getPostsFromFeed(
+                getLoggedId(session),
+                PageRequest.of(page, size));
+        return new ResponseEntity<>(feed, HttpStatus.OK);
+    }
 }

@@ -72,7 +72,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE usp.user_id = ?1 AND p.is_created = 1
             ORDER BY p.date_time_created DESC
             """, nativeQuery = true)
-    Slice<Post> findSavedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
+    Slice<Post> findAllSavedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
 
 
     @Query(value = """
@@ -84,5 +84,20 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             WHERE uhtp.user_id = ?1 AND p.is_created = 1
             ORDER BY p.date_time_created DESC
             """, nativeQuery = true)
-    Slice<Post> findTaggedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
+    Slice<Post> findAllUserTaggedOrderByUploadDateDesc(long ownerId, Pageable pageable);
+
+
+    @Query(value = """
+            SELECT p.*
+            FROM posts p
+            JOIN users u 
+            ON p.owner_id = u.id
+            JOIN followers f 
+            ON u.id = f.followed_user_id
+            WHERE f.following_user_id = :userId
+            AND p.is_created = 1
+            AND p.date_time_created > CURRENT_TIMESTAMP - INTERVAL 2 DAY
+            ORDER BY p.date_time_created DESC
+            """, nativeQuery = true)
+    Slice<Post> findAllByUserFollowersOrderByUploadDateDesc(long userId, Pageable pageable);
 }
