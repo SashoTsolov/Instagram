@@ -5,6 +5,8 @@ import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.post.Post;
+import bg.ittalents.instagram.post.PostService;
+import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.modelmapper.ModelMapper;
@@ -28,9 +30,13 @@ public class MediaService {
     MediaRepository mediaRepository;
 
     @Autowired
+    PostService postService;
+
+    @Autowired
     ModelMapper mediaMapper;
 
     @SneakyThrows
+    @Transactional
     public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
 
         Post post = postRepository.findByIdNotCreated(postId)
@@ -58,6 +64,7 @@ public class MediaService {
             post.getMediaUrls().add(media);
         }
         mediaRepository.saveAll(allMedia);
+        postService.updatePostInfo(post);
 
         post.setIsCreated(true);
         postRepository.save(post);

@@ -62,11 +62,46 @@ public class PostService extends AbstractService {
         post.setLocation(newLocation);
         post.setDateTimeCreated(LocalDateTime.now());
         post.setIsCreated(false);
-        List<String> hashtags = findAllHashtags(createPostDTO.getCaption());
-        saveNewHashtags(hashtags, post);
+        // TODO
         postRepository.save(post);
 
         return mapper.map(post, PostWithoutCommentsDTO.class);
+    }
+
+    @Transactional
+    public void updatePostInfo(Post post) {
+
+        if(post.getHashtags() == null) {
+            post.setHashtags(new HashSet<>());
+        }
+        if (post.getTaggedUsers() == null) {
+            post.setTaggedUsers(new ArrayList<>());
+        }
+
+        post.getHashtags().forEach(hashtag -> hashtag.getPosts().remove(post));
+        post.getHashtags().clear();
+        post.getTaggedUsers().forEach(user -> user.getTaggedPosts().remove(post));
+        post.getTaggedUsers().clear();
+
+        List<String> hashtags = findAllHashtags(post.getCaption());
+        List<String> userTags = findAllUserTags(post.getCaption());
+        saveNewHashtags(hashtags, post);
+        saveNewUserTags(userTags, post);
+
+        postRepository.save(post);
+    }
+
+    private List<String> findAllUserTags(String input) {
+
+        Pattern pattern = Pattern.compile("@\\w+");
+        Matcher matcher = pattern.matcher(input);
+        List<String> userTags = new ArrayList<>();
+
+        while (matcher.find()) {
+            userTags.add(matcher.group().substring(1));
+        }
+
+        return userTags;
     }
 
     private List<String> findAllHashtags(String input) {
@@ -84,9 +119,7 @@ public class PostService extends AbstractService {
 
     private void saveNewHashtags(List<String> hashtags, Post post) {
         if (!hashtags.isEmpty()) {
-            if (post.getHashtags() == null) {
-                post.setHashtags(new HashSet<>());
-            }
+            List<Hashtag> hashtagsToSave = new ArrayList<>();
             for (String hashtagName : hashtags) {
                 Hashtag hashtag;
                 if (hashtagRepository.existsByName(hashtagName)) {
@@ -95,11 +128,31 @@ public class PostService extends AbstractService {
                     hashtag = new Hashtag();
                     hashtag.setName(hashtagName);
                     hashtag.setPosts(new HashSet<>());
-                    hashtagRepository.save(hashtag);
+                    hashtagsToSave.add(hashtag);
                 }
                 hashtag.getPosts().add(post);
                 post.getHashtags().add(hashtag);
             }
+            hashtagRepository.saveAll(hashtagsToSave);
+        }
+    }
+
+    private void saveNewUserTags(List<String> userTags, Post post) {
+        if (!userTags.isEmpty()) {
+            List<User> usersToSave = new ArrayList<>();
+            for (String userTag : userTags) {
+                if (userRepository.existsByUsername(userTag)) {
+                    User user = userRepository.findByUsername(userTag)
+                            .orElseThrow(() -> new NotFoundException("The user doens't exist"));
+                    if (user.getTaggedPosts() == null) {
+                        user.setTaggedPosts(new ArrayList<>());
+                    }
+                    user.getTaggedPosts().add(post);
+                    post.getTaggedUsers().add(user);
+                    usersToSave.add(user);
+                }
+            }
+            userRepository.saveAll(usersToSave);
         }
     }
 
@@ -170,16 +223,17 @@ public class PostService extends AbstractService {
     }
 
     public String deletePost(long postId, long userId) {
-        Post post = postRepository.findById(postId).
+        Post post = postRepository.findByIdNotCreated(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         if (post.getOwner().getId() != userId) {
             throw new UnauthorizedException("You can't delete post that is not yours!");
         }
         postRepository.delete(post);
-        return "Post" + post.getId() + "deleted successfully!";
+        return "Post " + post.getId() + " deleted successfully!";
 //        return "postToPostWithCommentsDTO(post)";
     }
+
 
     public String updateCaption(long postId, CaptionDTO caption, long userId) {
 
@@ -191,8 +245,8 @@ public class PostService extends AbstractService {
         }
 
         post.setCaption(caption.getCaption());
-        postRepository.save(post);
-        return "Updated Successfully!";
+        updatePostInfo(post);
+        return "Caption of post " + post.getId() + " updated Successfully!";
 //        return postToPostWithCommentsDTO(post);
     }
 
@@ -243,6 +297,15 @@ public class PostService extends AbstractService {
     public Slice<PostPreviewDTO> getUserSavedPosts(long loggedId, Pageable pageable) {
 
         User user = userRepository.findById(loggedId)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
+        return postRepository.findSavedByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)
+                .map(post -> postToPostPreviewDTO(post));
+    }
+
+    public Slice<PostPreviewDTO> getUserTaggedPostsById(long id, Pageable pageable) {
+
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
         return postRepository.findTaggedByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)

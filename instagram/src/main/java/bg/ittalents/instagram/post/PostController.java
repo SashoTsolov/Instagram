@@ -30,7 +30,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping
@@ -61,7 +60,7 @@ public class PostController extends AbstractController {
 
 
     // View user's posts sorted by upload date - DESC
-    @GetMapping("users/{id}/posts")
+    @GetMapping("/users/{id}/posts")
     public ResponseEntity<Slice<PostPreviewDTO>> getUserPostsById(
             @RequestParam int page,
             @RequestParam int size,
@@ -127,8 +126,8 @@ public class PostController extends AbstractController {
     // Edit caption - localhost:8080/posts/1/caption
     @PutMapping("/posts/{id}/caption")
     public ResponseEntity<String> updateCaption(@PathVariable long id,
-                                                             @RequestBody CaptionDTO caption,
-                                                             HttpSession session) {
+                                                @RequestBody CaptionDTO caption,
+                                                HttpSession session) {
         getLoggedId(session);
         String dto = postService.updateCaption(id, caption, getLoggedId(session));
         return new ResponseEntity<>(dto, HttpStatus.OK);
@@ -167,5 +166,19 @@ public class PostController extends AbstractController {
         Slice<PostPreviewDTO> savedPosts = postService.getUserSavedPosts(getLoggedId(session),
                 PageRequest.of(page, size));
         return new ResponseEntity<>(savedPosts, HttpStatus.OK);
+    }
+
+    @GetMapping("/users/{id}/tagged")
+    public ResponseEntity<Slice<PostPreviewDTO>> getUserTaggedPostsById(
+            @PathVariable long id,
+            @RequestParam int page,
+            @RequestParam int size,
+            HttpSession session) {
+
+        getLoggedId(session);
+        Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserTaggedPostsById(
+                id,
+                PageRequest.of(page, size));
+        return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
     }
 }

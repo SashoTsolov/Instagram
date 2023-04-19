@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -71,6 +70,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             JOIN users_save_posts AS usp 
             ON p.id = usp.post_id
             WHERE usp.user_id = ?1 AND p.is_created = 1
+            ORDER BY p.date_time_created DESC
+            """, nativeQuery = true)
+    Slice<Post> findSavedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
+
+
+    @Query(value = """
+            SELECT
+                *
+            FROM posts AS p
+            JOIN users_have_tagged_posts AS uhtp 
+            ON p.id = uhtp.post_id
+            WHERE uhtp.user_id = ?1 AND p.is_created = 1
             ORDER BY p.date_time_created DESC
             """, nativeQuery = true)
     Slice<Post> findTaggedByOwnerIdOrderByUploadDateDesc(long ownerId, Pageable pageable);
