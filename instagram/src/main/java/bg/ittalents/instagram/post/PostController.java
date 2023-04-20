@@ -11,7 +11,6 @@ import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.SneakyThrows;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
@@ -35,15 +34,13 @@ import java.util.List;
 @RequestMapping
 public class PostController extends AbstractController {
 
-    @Autowired
-    protected PostService postService;
 
-    @Autowired
-    MediaService mediaService;
+    private final PostService postService;
+    private final MediaService mediaService;
 
-    @Autowired
-    public PostController(PostService postService) {
+    public PostController(PostService postService, MediaService mediaService) {
         this.postService = postService;
+        this.mediaService = mediaService;
     }
 
     // View post
@@ -53,8 +50,7 @@ public class PostController extends AbstractController {
             @RequestParam int page,
             @RequestParam int size,
             HttpSession session) {
-        getLoggedId(session);
-        PostWithCommentsDTO dto = postService.getPostById(id, PageRequest.of(page, size));
+        PostWithCommentsDTO dto = postService.getPostById(getLoggedId(session), id, PageRequest.of(page, size));
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
@@ -68,6 +64,7 @@ public class PostController extends AbstractController {
 
         getLoggedId(session);
         Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(
+                getLoggedId(session),
                 id,
                 PageRequest.of(page, size));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);
@@ -75,8 +72,11 @@ public class PostController extends AbstractController {
 
     //     View all by location
     @PostMapping("/posts/location")
-    public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByLocation(@RequestBody SearchRequestDTO searchRequestDTO) {
+    public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByLocation(
+            @RequestBody SearchRequestDTO searchRequestDTO,
+            HttpSession session) {
         Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
+                getLoggedId(session),
                 searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
@@ -86,8 +86,10 @@ public class PostController extends AbstractController {
 
     // View all by hashtag
     @PostMapping("/posts/hashtag")
-    public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByHashtags(@RequestBody SearchRequestDTO searchRequestDTO) {
+    public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByHashtags(
+            @RequestBody SearchRequestDTO searchRequestDTO,HttpSession session) {
         Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
+                getLoggedId(session),
                 searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
@@ -100,7 +102,7 @@ public class PostController extends AbstractController {
     public ResponseEntity<PostWithoutCommentsDTO> addPost(@RequestBody CreatePostDTO createPostDTO,
                                                           HttpSession session) {
 
-        PostWithoutCommentsDTO dto = postService.addPost(createPostDTO, getLoggedId(session));
+        PostWithoutCommentsDTO dto = postService.addPost(getLoggedId(session), createPostDTO);
         return new ResponseEntity<>(dto, HttpStatus.CREATED);
     }
 
@@ -129,7 +131,7 @@ public class PostController extends AbstractController {
                                                 @RequestBody CaptionDTO caption,
                                                 HttpSession session) {
         getLoggedId(session);
-        String dto = postService.updateCaption(id, caption, getLoggedId(session));
+        String dto = postService.updateCaption(getLoggedId(session), id, caption);
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
@@ -138,21 +140,21 @@ public class PostController extends AbstractController {
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<String> deletePost(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
-        String dto = postService.deletePost(id, getLoggedId(session));
+        String dto = postService.deletePost(getLoggedId(session), id);
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
     // Like/Unlike
     @PostMapping("/posts/{id}/like")
     public ResponseEntity<Integer> likePost(@PathVariable long id, HttpSession session) {
-        int numberOfLikes = postService.likePost(id, getLoggedId(session));
+        int numberOfLikes = postService.likePost(getLoggedId(session), id);
         return new ResponseEntity<>(numberOfLikes, HttpStatus.OK);
     }
 
     @PostMapping("/posts/{id}/save")
     public ResponseEntity<String> savePost(@PathVariable long id, HttpSession session) {
         getLoggedId(session);
-        String dto = postService.savePost(id, getLoggedId(session));
+        String dto = postService.savePost(getLoggedId(session), id);
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
@@ -174,9 +176,9 @@ public class PostController extends AbstractController {
             @RequestParam int page,
             @RequestParam int size,
             HttpSession session) {
-
         getLoggedId(session);
         Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserTaggedPostsById(
+                getLoggedId(session),
                 id,
                 PageRequest.of(page, size));
         return new ResponseEntity<>(postPreviewDTOsList, HttpStatus.OK);

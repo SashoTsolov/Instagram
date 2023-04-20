@@ -10,8 +10,6 @@ import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.user.UserRepository;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -21,24 +19,29 @@ import java.time.LocalDateTime;
 @Service
 public class CommentService {
 
-    @Autowired
-    CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper mapper;
 
-    @Autowired
-    PostRepository postRepository;
 
-    @Autowired
-    UserRepository userRepository;
+    public CommentService(CommentRepository commentRepository,
+                          PostRepository postRepository,
+                          UserRepository userRepository,
+                          ModelMapper mapper) {
+        this.commentRepository = commentRepository;
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
+        this.mapper = mapper;
+    }
 
-    @Autowired
-    ModelMapper mapper;
+    public Slice<CommentDTO> getCommentReplies(long userId, long commentId, Pageable pageable) {
 
-    public Slice<CommentDTO> getCommentReplies(long id, Pageable pageable) {
-
-        Comment c = commentRepository.findById(id)
+        Comment c = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("The comment doesn't exist"));
 
-        return commentRepository.findRepliesByParentIdOrderByNumberOfLikes(
+        return commentRepository.findAllRepliesByParentIdOrderByNumberOfLikes(
+                userId,
                 c.getId(),
                 pageable).map(comment -> commentToCommentDTO(comment));
     }
@@ -48,7 +51,7 @@ public class CommentService {
         User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId)
                 .orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         Comment comment = mapper.map(commentContentDTO, Comment.class);
@@ -59,12 +62,12 @@ public class CommentService {
     }
 
     @Transactional
-    public int likePost(long commentId, long loggedId) {
-        User user = userRepository.findById(loggedId).
-                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+    public int likePost(long userId, long commentId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        Comment comment = commentRepository.findById(commentId).
-                orElseThrow(() -> new NotFoundException("The comment doesn't exist"));
+        Comment comment = commentRepository.findCommentByIdById(userId, commentId)
+                .orElseThrow(() -> new NotFoundException("The comment doesn't exist"));
 
         if (user.getLikedComments().contains(comment) || comment.getLikedBy().contains(user)) {
             user.getLikedComments().remove(comment);
@@ -79,10 +82,10 @@ public class CommentService {
         return comment.getLikedBy().size();
     }
 
-    public CommentDTO deleteComment(long commentId, long userId) {
+    public CommentDTO deleteComment(long userId, long commentId) {
 
-        Comment comment = commentRepository.findById(commentId).
-                orElseThrow(() -> new NotFoundException("The comment doesn't exist"));
+        Comment comment = commentRepository.findCommentByIdById(userId, commentId)
+                .orElseThrow(() -> new NotFoundException("The comment doesn't exist"));
 
         if (comment.getOwner().getId() != userId) {
             throw new UnauthorizedException("You can't delete post that is not yours!");
@@ -100,10 +103,10 @@ public class CommentService {
         return dto;
     }
 
-    public CommentDTO replyToComment(long loggedId, long parentId,
+    public CommentDTO replyToComment(long userId, long parentId,
                                      CommentContentDTO commentContentDTO) {
 
-        User owner = userRepository.findById(loggedId)
+        User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
         Comment parentComment = commentRepository.findById(parentId)
@@ -117,12 +120,12 @@ public class CommentService {
         return mapper.map(commentRepository.save(comment), CommentDTO.class);
     }
 
-    public Slice<CommentDTO> getPostComments(long id, Pageable pageable) {
+    public Slice<CommentDTO> getPostComments(long userId, long postId, Pageable pageable) {
 
-        postRepository.findById(id)
+        postRepository.findByIdAndIsCreatedIsTrue(userId, postId)
                 .orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
-        return commentRepository.findParentCommentsByPostIdOrderByNumberOfLikes(id, pageable)
+        return commentRepository.findAllParentCommentsByPostIdOrderByNumberOfLikes(userId, postId, pageable)
                 .map(comment -> commentToCommentDTO(comment));
     }
 }

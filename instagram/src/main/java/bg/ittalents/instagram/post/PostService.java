@@ -17,8 +17,6 @@ import bg.ittalents.instagram.location.Location;
 import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -35,17 +33,20 @@ import java.util.stream.Collectors;
 @Service
 public class PostService extends AbstractService {
 
-    @Autowired
-    LocationRepository locationRepository;
-    @Autowired
-    HashtagRepository hashtagRepository;
 
-    @Autowired
-    CommentRepository commentRepository;
+    private final LocationRepository locationRepository;
+    private final HashtagRepository hashtagRepository;
+    private final CommentRepository commentRepository;
 
+    public PostService(LocationRepository locationRepository,
+                       HashtagRepository hashtagRepository, CommentRepository commentRepository) {
+        this.locationRepository = locationRepository;
+        this.hashtagRepository = hashtagRepository;
+        this.commentRepository = commentRepository;
+    }
 
     @Transactional
-    public PostWithoutCommentsDTO addPost(CreatePostDTO createPostDTO, long loggedId) {
+    public PostWithoutCommentsDTO addPost(long userId, CreatePostDTO createPostDTO) {
 
         Optional<Location> location = locationRepository.findByName(createPostDTO.getLocation());
 
@@ -57,7 +58,7 @@ public class PostService extends AbstractService {
             newLocation = location.get();
         }
         Post post = mapper.map(createPostDTO, Post.class);
-        User owner = getUserById(loggedId);
+        User owner = getUserById(userId);
         post.setOwner(owner);
         post.setIsStory(false);
         post.setLocation(newLocation);
@@ -70,9 +71,9 @@ public class PostService extends AbstractService {
     }
 
     @Transactional
-    public void updatePostInfo(Post post) {
+    public void updatePostInfo(final Post post) {
 
-        if(post.getHashtags() == null) {
+        if (post.getHashtags() == null) {
             post.setHashtags(new HashSet<>());
         }
         if (post.getTaggedUsers() == null) {
@@ -144,7 +145,7 @@ public class PostService extends AbstractService {
             for (String userTag : userTags) {
                 if (userRepository.existsByUsername(userTag)) {
                     User user = userRepository.findByUsername(userTag)
-                            .orElseThrow(() -> new NotFoundException("The user doens't exist"));
+                            .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
                     if (user.getTaggedPosts() == null) {
                         user.setTaggedPosts(new ArrayList<>());
                     }
@@ -157,28 +158,29 @@ public class PostService extends AbstractService {
         }
     }
 
-    public PostWithCommentsDTO getPostById(long id, Pageable pageable) {
-        Post post = postRepository.findById(id).
+    public PostWithCommentsDTO getPostById(final long userId, long postId, Pageable pageable) {
+        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
-        return postToPostWithCommentsDTO(post, pageable);
+        return postToPostWithCommentsDTO(userId, post, pageable);
     }
 
-    public Slice<PostPreviewDTO> getUserPostsById(long id, Pageable pageable) {
-        User user = userRepository.findById(id)
+    public Slice<PostPreviewDTO> getUserPostsById(long userId, long ownerId, Pageable pageable) {
+        final User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        return postRepository.findByOwnerIdOrderByUploadDateDesc(user.getId(), pageable)
-                .map(post -> postToPostPreviewDTO(post));
+        return postRepository.findByOwnerIdAndIsCreatedIsTrueOrderByDateTimeCreatedDesc(userId, owner.getId(), pageable)
+                .map(post -> postToPostPreviewDTO(owner.getId(), post));
     }
 
 
-    private PostWithCommentsDTO postToPostWithCommentsDTO(Post post, Pageable pageable) {
+    private PostWithCommentsDTO postToPostWithCommentsDTO(long userId, Post post, Pageable pageable) {
         PostWithCommentsDTO dto = mapper.map(post, PostWithCommentsDTO.class);
         dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(commentRepository.countAllByPostId(post.getId()));
+        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
 
-        Slice<Comment> comments = commentRepository.findParentCommentsByPostIdOrderByNumberOfLikes(
+        Slice<Comment> comments = commentRepository.findAllParentCommentsByPostIdOrderByNumberOfLikes(
+                userId,
                 post.getId(),
                 pageable);
         List<CommentDTO> commentDTOs = comments.getContent().stream()
@@ -194,44 +196,44 @@ public class PostService extends AbstractService {
         return dto;
     }
 
-    private PostPreviewDTO postToPostPreviewDTO(Post post) {
+    private PostPreviewDTO postToPostPreviewDTO(long userId, Post post) {
         PostPreviewDTO dto = mapper.map(post, PostPreviewDTO.class);
         dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(commentRepository.countAllByPostId(post.getId()));
+        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
         return dto;
     }
 
-    private PostWithoutCommentsDTO postToPostWithoutCommentsDTO(Post post) {
+    private PostWithoutCommentsDTO postToPostWithoutCommentsDTO(long userId, Post post) {
         PostWithoutCommentsDTO dto = mapper.map(post, PostWithoutCommentsDTO.class);
         dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(commentRepository.countAllByPostId(post.getId()));
+        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
         return dto;
     }
 
 
-    public Slice<PostPreviewDTO> searchPostsByHashtags(String searchString, Pageable pageable) {
+    public Slice<PostPreviewDTO> searchPostsByHashtags(final long userId, String searchString, Pageable pageable) {
 
         Hashtag hashtag = hashtagRepository.findByName(searchString)
                 .orElseThrow(() -> new NotFoundException("No posts with this hashtag were found!"));
 
         return postRepository
-                .findByHashtagNameSortedByDateTimeCreatedDesc(hashtag.getName(), pageable)
-                .map(post -> postToPostPreviewDTO(post));
+                .findAllByHashtagNameSortedByDateTimeCreatedDesc(userId, hashtag.getName(), pageable)
+                .map(post -> postToPostPreviewDTO(userId, post));
     }
 
-    public Slice<PostPreviewDTO> searchPostsByLocation(String searchString, Pageable pageable) {
+    public Slice<PostPreviewDTO> searchPostsByLocation(final long userId, String searchString, Pageable pageable) {
 
         Location location = locationRepository.findByName(searchString)
                 .orElseThrow(() -> new NotFoundException("No posts with this location were found!"));
 
         return postRepository
-                .findByLocationNameSortedByDateTimeCreatedDesc(location.getName(), pageable)
-                .map(post -> postToPostPreviewDTO(post));
+                .findAllByLocationNameSortedByDateTimeCreatedDesc(userId, location.getName(), pageable)
+                .map(post -> postToPostPreviewDTO(userId, post));
 
     }
 
-    public String deletePost(long postId, long userId) {
-        Post post = postRepository.findByIdNotCreated(postId).
+    public String deletePost(long userId, long postId) {
+        Post post = postRepository.findByIdAndIsCreatedIsFalse(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         if (post.getOwner().getId() != userId) {
@@ -243,9 +245,9 @@ public class PostService extends AbstractService {
     }
 
 
-    public String updateCaption(long postId, CaptionDTO caption, long userId) {
+    public String updateCaption(long userId, long postId, CaptionDTO caption) {
 
-        Post post = postRepository.findById(postId).
+        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         if (post.getOwner().getId() != userId) {
@@ -259,12 +261,12 @@ public class PostService extends AbstractService {
     }
 
     @Transactional
-    public int likePost(long postId, long userId) {
+    public int likePost(long userId, long postId) {
 
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        Post post = postRepository.findById(postId).
+        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         if (user.getLikedPosts().contains(post) || post.getLikedBy().contains(user)) {
@@ -281,12 +283,12 @@ public class PostService extends AbstractService {
     }
 
     @Transactional
-    public String savePost(long postId, long userId) {
+    public String savePost(long userId, long postId) {
 
         User user = userRepository.findById(userId).
                 orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        Post post = postRepository.findById(postId).
+        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         if (user.getSavedPosts().contains(post) || post.getSavedBy().contains(user)) {
@@ -302,25 +304,24 @@ public class PostService extends AbstractService {
 //        return postToPostWithCommentsDTO(post);
     }
 
-    public Slice<PostPreviewDTO> getUserSavedPosts(long loggedId, Pageable pageable) {
+    public Slice<PostPreviewDTO> getUserSavedPosts(final long userId, Pageable pageable) {
 
-        return postRepository.findAllSavedByOwnerIdOrderByUploadDateDesc(loggedId, pageable)
-                .map(post -> postToPostPreviewDTO(post));
+        return postRepository.findAllSavedByUserIdOrderByUploadDateDesc(userId, pageable)
+                .map(post -> postToPostPreviewDTO(userId, post));
     }
 
-    public Slice<PostPreviewDTO> getUserTaggedPostsById(long id, Pageable pageable) {
+    public Slice<PostPreviewDTO> getUserTaggedPostsById(long userId, long ownerId, Pageable pageable) {
 
-        User user = userRepository.findById(id)
+        final User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        return postRepository.findAllUserTaggedOrderByUploadDateDesc(user.getId(), pageable)
-                .map(post -> postToPostPreviewDTO(post));
+        return postRepository.findAllOwnerTaggedOrderByUploadDateDesc(userId, owner.getId(), pageable)
+                .map(post -> postToPostPreviewDTO(owner.getId(), post));
     }
 
-    public Slice<PostWithoutCommentsDTO> getPostsFromFeed(long loggedId, Pageable pageable) {
+    public Slice<PostWithoutCommentsDTO> getPostsFromFeed(final long userId, Pageable pageable) {
 
-        return postRepository.findAllByUserFollowersOrderByUploadDateDesc(loggedId, pageable)
-                .map(post -> postToPostWithoutCommentsDTO(post));
-
+        return postRepository.findAllByUserFollowersOrderByUploadDateDesc(userId, pageable)
+                .map(post -> postToPostWithoutCommentsDTO(userId, post));
     }
 }

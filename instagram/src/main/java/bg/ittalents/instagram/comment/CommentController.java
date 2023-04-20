@@ -4,7 +4,7 @@ import bg.ittalents.instagram.comment.DTOs.CommentContentDTO;
 import bg.ittalents.instagram.comment.DTOs.CommentDTO;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
@@ -20,28 +20,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CommentController extends AbstractController {
 
+    private final CommentService commentService;
 
-    @Autowired
-    CommentService commentService;
+    public CommentController(CommentService commentService) {
+        this.commentService = commentService;
+    }
 
     @GetMapping("/comments/{id}")
     public ResponseEntity<Slice<CommentDTO>> viewCommentReplies(@RequestParam int page,
                                                                 @RequestParam int size,
                                                                 @PathVariable long id,
                                                                 HttpSession session) {
-        getLoggedId(session);
-        Slice<CommentDTO> replies = commentService.getCommentReplies(id,
+
+        Slice<CommentDTO> replies = commentService.getCommentReplies(getLoggedId(session), id,
                 PageRequest.of(page, size));
         return new ResponseEntity<>(replies, HttpStatus.OK);
     }
 
     @GetMapping("/posts/{id}/comments")
-    public ResponseEntity<Slice<CommentDTO>> viewParentCommentsByPost(@RequestParam int page,
-                                                                @RequestParam int size,
-                                                                @PathVariable long id,
-                                                                HttpSession session) {
-        getLoggedId(session);
-        Slice<CommentDTO> comments = commentService.getPostComments(id,
+    public ResponseEntity<Slice<CommentDTO>> viewParentCommentsByPost(
+            @RequestParam int page,
+            @RequestParam int size,
+            @PathVariable long id,
+            HttpSession session) {
+
+        Slice<CommentDTO> comments = commentService.getPostComments(
+                getLoggedId(session), id,
                 PageRequest.of(page, size));
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
@@ -50,7 +54,7 @@ public class CommentController extends AbstractController {
     // Like/Unlike comment
     @PostMapping("/comments/{id}/like")
     public ResponseEntity<Integer> likeComment(@PathVariable long id, HttpSession session) {
-        int numberOfLikes = commentService.likePost(id, getLoggedId(session));
+        int numberOfLikes = commentService.likePost(getLoggedId(session), id);
         return new ResponseEntity<>(numberOfLikes, HttpStatus.OK);
     }
 
@@ -59,7 +63,7 @@ public class CommentController extends AbstractController {
     @PostMapping("/posts/{id}/comments")
     public ResponseEntity<CommentDTO> addCommentToPost(
             @PathVariable("id") long postId,
-            @RequestBody CommentContentDTO commentContentDTO,
+            @Valid @RequestBody CommentContentDTO commentContentDTO,
             HttpSession session) {
 
         CommentDTO dto = commentService.addCommentToPost(getLoggedId(session), postId, commentContentDTO);
@@ -71,7 +75,7 @@ public class CommentController extends AbstractController {
     @PostMapping("/comments/{id}")
     public ResponseEntity<CommentDTO> replyToComment(
             @PathVariable("id") long parentId,
-            @RequestBody CommentContentDTO commentContentDTO,
+            @Valid @RequestBody CommentContentDTO commentContentDTO,
             HttpSession session) {
 
         CommentDTO replyDTO = commentService.replyToComment(getLoggedId(session),
@@ -85,7 +89,7 @@ public class CommentController extends AbstractController {
     public ResponseEntity<CommentDTO> deleteComment(@PathVariable long id, HttpSession session) {
 
 
-        CommentDTO dto = commentService.deleteComment(id, getLoggedId(session));
+        CommentDTO dto = commentService.deleteComment(getLoggedId(session), id);
         return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 }
