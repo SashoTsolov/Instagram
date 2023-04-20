@@ -4,7 +4,6 @@ import bg.ittalents.instagram.exceptions.NotFoundException;
 import bg.ittalents.instagram.follower.FollowRepository;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.UserRepository;
-import jakarta.persistence.EntityManager;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;

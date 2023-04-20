@@ -6,6 +6,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.List;
@@ -27,5 +28,6 @@ public class AppConfig {
         Server server = new Server();
         server.setUrl(String.format("/%s", appName));
         return new OpenAPI().servers(List.of(server));
+
     }
 }

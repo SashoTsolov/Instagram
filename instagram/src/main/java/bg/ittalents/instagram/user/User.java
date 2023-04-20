@@ -2,6 +2,7 @@ package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.comment.Comment;
 import bg.ittalents.instagram.post.Post;
+import bg.ittalents.instagram.user.DTOs.UserWithoutPassAndEmailDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -46,6 +47,8 @@ public class User {
     private boolean isVerified;
     @Column
     private String verificationCode;
+    @Column
+    private LocalDateTime verificationCodeExpiry;
     @Column
     private Timestamp dateTimeCreated;
     @Column
