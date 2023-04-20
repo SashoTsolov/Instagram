@@ -10,7 +10,6 @@ import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,23 +22,25 @@ import java.util.UUID;
 @Service
 public class MediaService {
 
-    @Autowired
-    PostRepository postRepository;
 
-    @Autowired
-    MediaRepository mediaRepository;
+    private final PostRepository postRepository;
+    private final MediaRepository mediaRepository;
+    private final PostService postService;
+    private final ModelMapper mediaMapper;
 
-    @Autowired
-    PostService postService;
-
-    @Autowired
-    ModelMapper mediaMapper;
+    public MediaService(PostRepository postRepository,
+                        MediaRepository mediaRepository, PostService postService, ModelMapper mediaMapper) {
+        this.postRepository = postRepository;
+        this.mediaRepository = mediaRepository;
+        this.postService = postService;
+        this.mediaMapper = mediaMapper;
+    }
 
     @SneakyThrows
     @Transactional
     public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
 
-        Post post = postRepository.findByIdNotCreated(postId)
+        Post post = postRepository.findByIdAndIsCreatedIsFalse(postId)
                 .orElseThrow(() -> new NotFoundException("Post doesn't exist"));
 
         if (post.getIsCreated()) {
@@ -56,7 +57,7 @@ public class MediaService {
             File f = new File(dir, name);
             Files.copy(file.getInputStream(), f.toPath());
             String url = dir.getName() + File.separator + f.getName();
-            
+
             Media media = new Media();
             media.setMediaUrl(url);
             media.setPost(post);

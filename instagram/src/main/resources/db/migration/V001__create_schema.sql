@@ -13,7 +13,6 @@ CREATE TABLE users (
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
   verification_code VARCHAR(100) NOT NULL UNIQUE,
-  -- //TODO expire time of verification code;
   date_time_created TIMESTAMP NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
@@ -36,8 +35,6 @@ CREATE TABLE posts (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   owner_id BIGINT NOT NULL,
   location_id BIGINT,
-  is_story TINYINT NOT NULL,
-  is_visible TINYINT, -- NOT NULL,
   caption TEXT,
   is_created TINYINT,
   date_time_created TIMESTAMP NOT NULL,
