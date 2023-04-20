@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @Service
 public class UserService extends AbstractService {
 
-    public UserWithoutPassAndEmailDTO create(RegisterDTO dto) {
+    public void create(RegisterDTO dto) {
         //Check if email already exists
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new UserAlreadyExistsException("Email already being used");
@@ -49,14 +49,13 @@ public class UserService extends AbstractService {
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
         userRepository.save(user);
+        System.out.println("XD?");
 
         // Send verification email to user
         String subject = "Account Verification";
         String verificationLink = "https://localhost:8080/users/verify?verification-token=" + user.getVerificationCode();
         String text = "Click the link below to verify your account: \n" + verificationLink;
         sendEmail(user.getEmail(), subject, text);
-
-        return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
     public UserWithoutPassAndEmailDTO login(UserLoginDTO dto) {
