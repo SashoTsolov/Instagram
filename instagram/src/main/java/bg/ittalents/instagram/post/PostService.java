@@ -60,7 +60,6 @@ public class PostService extends AbstractService {
         Post post = mapper.map(createPostDTO, Post.class);
         User owner = getUserById(userId);
         post.setOwner(owner);
-        post.setIsStory(false);
         post.setLocation(newLocation);
         post.setDateTimeCreated(LocalDateTime.now());
         post.setIsCreated(false);

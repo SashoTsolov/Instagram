@@ -43,9 +43,6 @@ public class Post {
     private Location location;
 
     @Column(nullable = false)
-    private Boolean isStory;
-
-    @Column(nullable = false)
     private Boolean isCreated;
 
     @Column(name = "caption", columnDefinition = "TEXT")

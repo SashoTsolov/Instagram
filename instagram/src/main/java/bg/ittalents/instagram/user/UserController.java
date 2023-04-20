@@ -32,8 +32,9 @@ public class UserController extends AbstractController {
     }
 
     @GetMapping("/verify/email")
-    public void verifyEmail(@RequestParam("verification-token") String verificationToken) {
+    public ResponseEntity<String> verifyEmail(@RequestParam("verification-token") String verificationToken) {
         userService.verifyEmail(verificationToken);
+        return ResponseEntity.ok("Email verification successful");
     }
 
 
@@ -75,11 +76,12 @@ public class UserController extends AbstractController {
 
     // POST localhost:8080/users
     @PostMapping
-    public UserWithoutPassAndEmailDTO createUser(@Valid @RequestBody RegisterDTO dto, HttpSession s) {
+    public ResponseEntity<String> createUser(@Valid @RequestBody RegisterDTO dto, HttpSession s) {
         if (s.getAttribute("LOGGED_ID") != null) {
             throw new UnauthorizedException("You can't register while logged into an account");
         }
-        return userService.create(dto);
+        userService.create(dto);
+        return ResponseEntity.ok("Account successfully created, we've sent a verification link to your email");
     }
 
     // POST localhost:8080/users/login
@@ -104,14 +106,15 @@ public class UserController extends AbstractController {
 
     //PUT localhost:8080/users/password/forgot
     @PutMapping("/password/forgot")
-    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody UserEmailDTO dto) {
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody UserEmailDTO dto) {
         userService.forgotPassword(dto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("A password reset link has been sent to your email");
     }
 
     @GetMapping("/password/reset")
-    public void resetPassword(@RequestParam("id") String identifier) {
+    public ResponseEntity<String> resetPassword(@RequestParam("id") String identifier) {
         userService.resetPassword(identifier);
+        return ResponseEntity.ok("Your new password has been sent to your email");
     }
 
     // POST localhost:8080/users/2/block
