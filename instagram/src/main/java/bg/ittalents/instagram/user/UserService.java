@@ -11,6 +11,8 @@ import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
@@ -20,9 +22,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,11 +46,18 @@ public class UserService extends AbstractService {
         user.setVerified(false);
         user.setDeactivated(false);
         user.setVerificationCode(generateVerificationCode());
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
         userRepository.save(user);
-        return mapper.map(user, UserWithoutPassAndEmailDTO.class);
-    }
 
+        // Send verification email to user
+        String subject = "Account Verification";
+        String verificationLink = "https://localhost:8080/users/verify?verification-token=" + user.getVerificationCode();
+        String text = "Click the link below to verify your account: \n" + verificationLink;
+        sendEmail(user.getEmail(), subject, text);
+
+        return getUserWithoutPassAndEmailDTO(user.getId());
+    }
 
     public UserWithoutPassAndEmailDTO login(UserLoginDTO dto) {
         User user = getUserByEmail(dto.getEmail());
@@ -58,37 +65,51 @@ public class UserService extends AbstractService {
         if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Wrong credentials");
         }
+//        if (!user.isVerified()) {
+//            throw new BadRequestException("Account is not verified yet");
+//        }
         if (user.isDeactivated()) {
             user.setDeactivated(false);
+            userRepository.save(user);
         }
-        return mapper.map(user, UserWithoutPassAndEmailDTO.class);
+        return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
     public UserWithoutPassAndEmailDTO getById(long id) {
         User user = getUserById(id);
-        return mapper.map(user, UserWithoutPassAndEmailDTO.class);
+        return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
     //This method should be ready to go!!!
-    public ResponseEntity<String> block(long blockingUserId, long blockedUserId) {
+    @Transactional
+    public void block(long blockingUserId, long blockedUserId) {
         User blocker = getUserById(blockingUserId);
         User blocked = getUserById(blockedUserId);
         //Check if user is trying to block himself
         if (blocker.getId() == blocked.getId()) {
-            throw new RuntimeException("You can't block yourself");
+            throw new BadRequestException("You can't block yourself");
         }
         //Check if user is trying to block someone that's already blocked
         if (blocker.getBlocked().contains(blocked)) {
-            throw new RuntimeException("You have already blocked this user");
+            blocker.getBlocked().remove(blocked);
+            blocked.getBlockedBy().remove(blocker);
+            userRepository.save(blocker);
+            userRepository.save(blocked);
+            return;
         }
         blocker.getBlocked().add(blocked);
+        blocked.getBlockedBy().add(blocker);
+        if (blocker.getFollowing().contains(blocked)){
+            blocker.getFollowing().remove(blocked);
+            blocked.getFollowers().remove(blocker);
+        }
         userRepository.save(blocker);
-        return ResponseEntity.ok(blocked.getName() + " was successfully blocked");
+        userRepository.save(blocked);
     }
 
     private String generateVerificationCode() {
         UUID uuid = UUID.randomUUID();
-        String code = uuid.toString().substring(0, 6);
+        String code = uuid.toString().substring(0, 12);
         return code;
     }
 
@@ -116,10 +137,12 @@ public class UserService extends AbstractService {
         followRepository.save(followEntity);
     }
 
+    //TODO -- make this into a query and filter by blocked/blockedBy/deactivated
     public List<UserBasicInfoDTO> searchUsersByUsername(String username) {
         List<User> users = userRepository.findAll();
         List<User> filteredUsers = users.stream()
                 .filter(user -> containsIgnoreCase(user.getUsername(), username))
+                .filter(user -> !user.isDeactivated())
                 .limit(55)
                 .toList();
         System.out.println(filteredUsers.size());
@@ -127,7 +150,7 @@ public class UserService extends AbstractService {
                 .map(user -> mapper.map(user, UserBasicInfoDTO.class)).collect(Collectors.toList());
     }
 
-    public ResponseEntity<String> changePassword(long userId, UserChangePasswordDTO dto) {
+    public void changePassword(long userId, UserChangePasswordDTO dto) {
         User user = getUserById(userId);
         if (!encoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is invalid");
@@ -140,20 +163,18 @@ public class UserService extends AbstractService {
         user.setPassword(newPassword);
 
         userRepository.save(user);
-        return ResponseEntity.ok("Password changed");
     }
 
     public boolean containsIgnoreCase(String str, String subStr) {
         return str.toLowerCase().contains(subStr.toLowerCase());
     }
 
-    public ResponseEntity<String> deleteUserById(long userId, UserPasswordDTO dto) {
+    public void deleteUserById(long userId, UserPasswordDTO dto) {
         User user = getUserById(userId);
         if (encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new BadRequestException("Wrong credentials");
         }
         userRepository.delete(user);
-        return ResponseEntity.ok("Account successfully deleted");
     }
 
     public boolean deactivateUser(long userId, UserPasswordDTO dto) {
@@ -166,7 +187,7 @@ public class UserService extends AbstractService {
         return false;
     }
 
-    public ResponseEntity<String> changeInfo(long userId, UserChangeInfoDTO dto) {
+    public void changeInfo(long userId, UserChangeInfoDTO dto) {
         User user = getUserById(userId);
         // Update the user's information
         if (dto.getUsername() != null && !dto.getUsername().isBlank()) {
@@ -185,7 +206,6 @@ public class UserService extends AbstractService {
         }
 
         userRepository.save(user);
-        return ResponseEntity.ok("Info changed!");
     }
 
     @SneakyThrows
@@ -221,8 +241,8 @@ public class UserService extends AbstractService {
         user.setResetIdentifierExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
         // Send email to user with reset link
-        String subject = "Reset your password";
-        String resetLink = "https://localhost:8080/reset/password?id=" + identifier;
+        String subject = "Email verification";
+        String resetLink = "https://localhost:8080/password/reset?id=" + identifier;
         String text = "Click the link below to reset your password: \n" + resetLink;
         sendEmail(user.getEmail(), subject, text);
     }
@@ -268,5 +288,66 @@ public class UserService extends AbstractService {
         }
 
         return password;
+    }
+
+    public void sendVerificationEmail(String email) {
+        User user = getUserByEmail(email);
+        String verificationCode = generateVerificationCode();
+        user.setVerificationCode(verificationCode);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+        // Send verification email to user
+        String subject = "Email verification";
+        String verificationLink = "https://localhost:8080/users/email?verification-token=" + verificationCode;
+        String text = "Click the link below to verify your email address: \n" + verificationLink;
+        sendEmail(user.getEmail(), subject, text);
+    }
+
+    public void verifyEmail(String verificationToken) {
+        User user = userRepository.findByVerificationCode(verificationToken)
+                .orElseThrow(() -> new NotFoundException("Invalid verification token"));
+        if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Verification code has expired");
+        }
+        user.setVerified(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+        userRepository.save(user);
+    }
+
+    public Slice<UserBasicInfoDTO> getFollowers(long id, Pageable pageable) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
+        return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
+                .map(u -> mapToUserBasicInfoDTO(u));
+    }
+
+    private UserBasicInfoDTO mapToUserBasicInfoDTO(User user) {
+        UserBasicInfoDTO dto = mapper.map(user, UserBasicInfoDTO.class);
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setName(user.getName());
+        dto.setProfilePictureUrl(user.getProfilePictureUrl());
+        return dto;
+    }
+
+    public Slice<UserBasicInfoDTO> getFollowing(long id, Pageable pageable) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
+        return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
+                .map(u -> mapToUserBasicInfoDTO(u));
+    }
+
+    @Transactional
+    public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        int numFollowers = user.getFollowers().size();
+        int numFollowing = user.getFollowing().size();
+        int numPosts = user.getPosts().size();
+
+        return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(), user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);
     }
 }

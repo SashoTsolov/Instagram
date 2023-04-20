@@ -12,8 +12,8 @@ CREATE TABLE users (
   gender VARCHAR(1),
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
-  verification_code VARCHAR(100) NOT NULL UNIQUE,
-  -- //TODO expire time of verification code;
+  verification_code VARCHAR(100) UNIQUE,
+  verification_code_expiry TIMESTAMP,
   date_time_created TIMESTAMP NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
