@@ -7,12 +7,12 @@ import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import bg.ittalents.instagram.follower.Follow;
 import bg.ittalents.instagram.follower.FollowKey;
 import bg.ittalents.instagram.follower.FollowRepository;
-import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -68,7 +68,6 @@ public class UserService extends AbstractService {
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
         userRepository.save(user);
-        System.out.println("XD?");
 
         // Send verification email to user
         String subject = "Account Verification";
@@ -291,21 +290,8 @@ public class UserService extends AbstractService {
 
     public String generateRandomPassword() {
         int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
-        String uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
-        String numbers = "0123456789";
-        String symbols = "!@#$%^&?";
-
-        String password = "";
-        String allCharacters = uppercaseLetters + lowercaseLetters + numbers + symbols;
-
-        Random rand = new Random();
-
-        for (int i = 0; i < passwordLength; i++) {
-            password += allCharacters.charAt(rand.nextInt(allCharacters.length()));
-        }
-
-        return password;
+        String allCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&?";
+        return RandomStringUtils.random(passwordLength, allCharacters);
     }
 
     public void sendVerificationEmail(String email) {
@@ -366,6 +352,7 @@ public class UserService extends AbstractService {
         int numFollowing = user.getFollowing().size();
         int numPosts = user.getPosts().size();
 
-        return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(), user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);
+        return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(),
+                user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);
     }
 }

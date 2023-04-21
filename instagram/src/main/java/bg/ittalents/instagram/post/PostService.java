@@ -5,7 +5,6 @@ import bg.ittalents.instagram.comment.CommentRepository;
 import bg.ittalents.instagram.comment.DTOs.CommentDTO;
 import bg.ittalents.instagram.exception.NotFoundException;
 import bg.ittalents.instagram.exception.UnauthorizedException;
-import bg.ittalents.instagram.follower.FollowRepository;
 import bg.ittalents.instagram.hashtag.Hashtag;
 import bg.ittalents.instagram.hashtag.HashtagRepository;
 import bg.ittalents.instagram.location.LocationRepository;
@@ -23,8 +22,6 @@ import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -77,7 +74,6 @@ public class PostService extends AbstractService {
         post.setLocation(newLocation);
         post.setDateTimeCreated(LocalDateTime.now());
         post.setIsCreated(false);
-        // TODO
         postRepository.save(post);
 
         return mapper.map(post, PostWithoutCommentsDTO.class);
@@ -106,6 +102,124 @@ public class PostService extends AbstractService {
         postRepository.save(post);
     }
 
+    public PostWithCommentsDTO getPostById(final long userId, long postId, Pageable pageable) {
+        Post post = findByIdAndIsCreatedIsTrue(userId, postId);
+        return postToPostWithCommentsDTO(userId, post, pageable);
+    }
+
+    public Slice<PostPreviewDTO> getUserPostsById(long userId, long ownerId, Pageable pageable) {
+        final User owner = getUserById(ownerId);
+
+        return postRepository.findByOwnerIdAndIsCreatedIsTrueOrderByDateTimeCreatedDesc(userId, owner.getId(), pageable)
+                .map(post -> postToPostPreviewDTO(owner.getId(), post));
+    }
+
+
+
+    public Slice<PostPreviewDTO> searchPostsByHashtags(final long userId, String searchString, Pageable pageable) {
+
+        Hashtag hashtag = hashtagRepository.findByName(searchString)
+                .orElseThrow(() -> new NotFoundException("No posts with this hashtag were found!"));
+
+        return postRepository
+                .findAllByHashtagNameSortedByDateTimeCreatedDesc(userId, hashtag.getName(), pageable)
+                .map(post -> postToPostPreviewDTO(userId, post));
+    }
+
+    public Slice<PostPreviewDTO> searchPostsByLocation(final long userId, String searchString, Pageable pageable) {
+
+        Location location = locationRepository.findByName(searchString)
+                .orElseThrow(() -> new NotFoundException("No posts with this location were found!"));
+
+        return postRepository
+                .findAllByLocationNameSortedByDateTimeCreatedDesc(userId, location.getName(), pageable)
+                .map(post -> postToPostPreviewDTO(userId, post));
+
+    }
+
+    public String deletePost(long userId, long postId) {
+        Post post = postRepository.findById(postId).
+                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
+
+        if (post.getOwner().getId() != userId) {
+            throw new UnauthorizedException("You can't delete post that is not yours!");
+        }
+        deleteMediaFiles(post);
+        postRepository.delete(post);
+        return "Post " + post.getId() + " deleted successfully!";
+    }
+
+
+    public String updateCaption(long userId, long postId, CaptionDTO caption) {
+
+        Post post = findByIdAndIsCreatedIsTrue(userId, postId);
+
+        if (post.getOwner().getId() != userId) {
+            throw new UnauthorizedException("You can't edit post that is not yours!");
+        }
+
+        post.setCaption(caption.getCaption());
+        updatePostInfo(post);
+        return "Caption of post " + post.getId() + " updated Successfully!";
+    }
+
+    @Transactional
+    public int likePost(long userId, long postId) {
+
+        User user = getUserById(userId);
+        Post post = findByIdAndIsCreatedIsTrue(userId, postId);
+
+        if (user.getLikedPosts().contains(post) || post.getLikedBy().contains(user)) {
+            user.getLikedPosts().remove(post);
+            post.getLikedBy().remove(user);
+        } else {
+            user.getLikedPosts().add(post);
+            post.getLikedBy().add(user);
+        }
+
+        userRepository.save(user);
+        postRepository.save(post);
+        return post.getLikedBy().size();
+    }
+
+    @Transactional
+    public String savePost(long userId, long postId) {
+
+        User user = getUserById(userId);
+        Post post = findByIdAndIsCreatedIsTrue(userId, postId);
+
+        if (user.getSavedPosts().contains(post) || post.getSavedBy().contains(user)) {
+            user.getSavedPosts().remove(post);
+            post.getSavedBy().remove(user);
+        } else {
+            user.getSavedPosts().add(post);
+            post.getSavedBy().add(user);
+        }
+
+        userRepository.save(user);
+        return "Saved Successfully!";
+    }
+
+    public Slice<PostPreviewDTO> getUserSavedPosts(final long userId, Pageable pageable) {
+
+        return postRepository.findAllSavedByUserIdOrderByUploadDateDesc(userId, pageable)
+                .map(post -> postToPostPreviewDTO(userId, post));
+    }
+
+    public Slice<PostPreviewDTO> getUserTaggedPostsById(long userId, long ownerId, Pageable pageable) {
+
+        final User owner = getUserById(ownerId);
+
+        return postRepository.findAllOwnerTaggedOrderByUploadDateDesc(userId, owner.getId(), pageable)
+                .map(post -> postToPostPreviewDTO(owner.getId(), post));
+    }
+
+    public Slice<PostWithoutCommentsDTO> getPostsFromFeed(final long userId, Pageable pageable) {
+
+        return postRepository.findAllByUserFollowersOrderByUploadDateDesc(userId, pageable)
+                .map(post -> postToPostWithoutCommentsDTO(userId, post));
+    }
+
     private List<String> findAllUserTags(String input) {
 
         Pattern pattern = Pattern.compile("@\\w+");
@@ -131,6 +245,7 @@ public class PostService extends AbstractService {
 
         return hashtags;
     }
+
 
     private void saveNewHashtags(List<String> hashtags, Post post) {
         if (!hashtags.isEmpty()) {
@@ -171,19 +286,23 @@ public class PostService extends AbstractService {
         }
     }
 
-    public PostWithCommentsDTO getPostById(final long userId, long postId, Pageable pageable) {
-        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
+    private Post findByIdAndIsCreatedIsTrue(long userId, long postId) {
+        return postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
-
-        return postToPostWithCommentsDTO(userId, post, pageable);
     }
 
-    public Slice<PostPreviewDTO> getUserPostsById(long userId, long ownerId, Pageable pageable) {
-        final User owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+    private PostPreviewDTO postToPostPreviewDTO(long userId, Post post) {
+        PostPreviewDTO dto = mapper.map(post, PostPreviewDTO.class);
+        dto.setNumberOfLikes(post.getLikedBy().size());
+        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
+        return dto;
+    }
 
-        return postRepository.findByOwnerIdAndIsCreatedIsTrueOrderByDateTimeCreatedDesc(userId, owner.getId(), pageable)
-                .map(post -> postToPostPreviewDTO(owner.getId(), post));
+    private PostWithoutCommentsDTO postToPostWithoutCommentsDTO(long userId, Post post) {
+        PostWithoutCommentsDTO dto = mapper.map(post, PostWithoutCommentsDTO.class);
+        dto.setNumberOfLikes(post.getLikedBy().size());
+        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
+        return dto;
     }
 
 
@@ -207,136 +326,6 @@ public class PostService extends AbstractService {
 
         dto.setComments(commentDTOs);
         return dto;
-    }
-
-    private PostPreviewDTO postToPostPreviewDTO(long userId, Post post) {
-        PostPreviewDTO dto = mapper.map(post, PostPreviewDTO.class);
-        dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
-        return dto;
-    }
-
-    private PostWithoutCommentsDTO postToPostWithoutCommentsDTO(long userId, Post post) {
-        PostWithoutCommentsDTO dto = mapper.map(post, PostWithoutCommentsDTO.class);
-        dto.setNumberOfLikes(post.getLikedBy().size());
-        dto.setNumberOfComments(commentRepository.countAllByPostId(userId, post.getId()));
-        return dto;
-    }
-
-
-    public Slice<PostPreviewDTO> searchPostsByHashtags(final long userId, String searchString, Pageable pageable) {
-
-        Hashtag hashtag = hashtagRepository.findByName(searchString)
-                .orElseThrow(() -> new NotFoundException("No posts with this hashtag were found!"));
-
-        return postRepository
-                .findAllByHashtagNameSortedByDateTimeCreatedDesc(userId, hashtag.getName(), pageable)
-                .map(post -> postToPostPreviewDTO(userId, post));
-    }
-
-    public Slice<PostPreviewDTO> searchPostsByLocation(final long userId, String searchString, Pageable pageable) {
-
-        Location location = locationRepository.findByName(searchString)
-                .orElseThrow(() -> new NotFoundException("No posts with this location were found!"));
-
-        return postRepository
-                .findAllByLocationNameSortedByDateTimeCreatedDesc(userId, location.getName(), pageable)
-                .map(post -> postToPostPreviewDTO(userId, post));
-
-    }
-
-    public String deletePost(long userId, long postId) {
-        Post post = postRepository.findById(postId).
-                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
-
-        if (post.getOwner().getId() != userId) {
-            throw new UnauthorizedException("You can't delete post that is not yours!");
-        }
-        deleteMediaFiles(post);
-        postRepository.delete(post);
-        return "Post " + post.getId() + " deleted successfully!";
-//        return "postToPostWithCommentsDTO(post)";
-    }
-
-
-    public String updateCaption(long userId, long postId, CaptionDTO caption) {
-
-        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
-                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
-
-        if (post.getOwner().getId() != userId) {
-            throw new UnauthorizedException("You can't edit post that is not yours!");
-        }
-
-        post.setCaption(caption.getCaption());
-        updatePostInfo(post);
-        return "Caption of post " + post.getId() + " updated Successfully!";
-//        return postToPostWithCommentsDTO(post);
-    }
-
-    @Transactional
-    public int likePost(long userId, long postId) {
-
-        User user = userRepository.findById(userId).
-                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
-                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
-
-        if (user.getLikedPosts().contains(post) || post.getLikedBy().contains(user)) {
-            user.getLikedPosts().remove(post);
-            post.getLikedBy().remove(user);
-        } else {
-            user.getLikedPosts().add(post);
-            post.getLikedBy().add(user);
-        }
-
-        userRepository.save(user);
-        postRepository.save(post);
-        return post.getLikedBy().size();
-    }
-
-    @Transactional
-    public String savePost(long userId, long postId) {
-
-        User user = userRepository.findById(userId).
-                orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        Post post = postRepository.findByIdAndIsCreatedIsTrue(userId, postId).
-                orElseThrow(() -> new NotFoundException("The post doesn't exist"));
-
-        if (user.getSavedPosts().contains(post) || post.getSavedBy().contains(user)) {
-            user.getSavedPosts().remove(post);
-            post.getSavedBy().remove(user);
-        } else {
-            user.getSavedPosts().add(post);
-            post.getSavedBy().add(user);
-        }
-
-        userRepository.save(user);
-        return "Saved Successfully!";
-//        return postToPostWithCommentsDTO(post);
-    }
-
-    public Slice<PostPreviewDTO> getUserSavedPosts(final long userId, Pageable pageable) {
-
-        return postRepository.findAllSavedByUserIdOrderByUploadDateDesc(userId, pageable)
-                .map(post -> postToPostPreviewDTO(userId, post));
-    }
-
-    public Slice<PostPreviewDTO> getUserTaggedPostsById(long userId, long ownerId, Pageable pageable) {
-
-        final User owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        return postRepository.findAllOwnerTaggedOrderByUploadDateDesc(userId, owner.getId(), pageable)
-                .map(post -> postToPostPreviewDTO(owner.getId(), post));
-    }
-
-    public Slice<PostWithoutCommentsDTO> getPostsFromFeed(final long userId, Pageable pageable) {
-
-        return postRepository.findAllByUserFollowersOrderByUploadDateDesc(userId, pageable)
-                .map(post -> postToPostWithoutCommentsDTO(userId, post));
     }
 
     private void deleteMediaFiles(Post post) {

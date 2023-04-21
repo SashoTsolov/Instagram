@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,6 +50,9 @@ public class MediaService {
         List<Media> allMedia = new ArrayList<>();
         for (MultipartFile file : files) {
             final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+            if (!Arrays.asList("jpg", "jpeg", "png", "mp4").contains(ext)) {
+                throw new BadRequestException("File type not supported. Only JPG, JPEG, PNG, and MP4 formats are allowed.");
+            }
             final String name = UUID.randomUUID().toString() + "." + ext;
             final File dir = new File("uploads_user_posts_media");
             if (!dir.exists()) {

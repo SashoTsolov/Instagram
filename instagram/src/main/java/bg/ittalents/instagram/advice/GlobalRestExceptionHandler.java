@@ -28,7 +28,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
         e.printStackTrace(); // TODO
-        return new ResponseEntity<>(errorDTO, HttpStatus.BAD_REQUEST);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDTO);
     }
 
     @ExceptionHandler(NotFoundException.class)
@@ -36,7 +36,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.NOT_FOUND.value(), LocalDateTime.now());
         e.printStackTrace(); // TODO
-        return new ResponseEntity<>(errorDTO, HttpStatus.NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDTO);
     }
 
     @ExceptionHandler(UnauthorizedException.class)
@@ -44,7 +44,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.UNAUTHORIZED.value(), LocalDateTime.now());
         e.printStackTrace(); // TODO
-        return new ResponseEntity<>(errorDTO, HttpStatus.UNAUTHORIZED);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorDTO);
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
@@ -52,7 +52,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.CONFLICT.value(), LocalDateTime.now());
         e.printStackTrace(); // TODO
-        return new ResponseEntity<>(errorDTO, HttpStatus.CONFLICT);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorDTO);
     }
 
     @ExceptionHandler(Exception.class)
@@ -60,7 +60,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), LocalDateTime.now());
         e.printStackTrace(); // TODO
-        return new ResponseEntity<>(errorDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDTO);
     }
 
     @Override
@@ -79,6 +79,6 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
                 });
         e.printStackTrace(); // TODO
         final ErrorDTO errorDTO = new ErrorDTO(errors, HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
-        return new ResponseEntity<>(errorDTO, HttpStatus.BAD_REQUEST);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDTO);
     }
 }

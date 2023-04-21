@@ -24,7 +24,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         AND ubu1.blocked_user_id IS NULL
         AND ubu2.blocking_user_id IS NULL
         """, nativeQuery = true)
-    Optional<Comment> findCommentByIdById(long userId, long commentId);
+    Optional<Comment> findCommentById(long userId, long commentId);
     @Query(value = """
         SELECT 
             c.*, 

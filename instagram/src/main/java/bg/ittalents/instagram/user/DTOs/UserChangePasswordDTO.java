@@ -21,5 +21,8 @@ public class UserChangePasswordDTO {
     private String newPassword;
 
     @NotBlank(message = "Confirm new password must not be blank")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
+            message = "New password must contain at least 8 characters, including one uppercase letter," +
+                    " one lowercase letter, one number and one special character")
     private String confirmNewPassword;
 }
