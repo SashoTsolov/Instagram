@@ -6,14 +6,19 @@ import bg.ittalents.instagram.exception.UnauthorizedException;
 import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import bg.ittalents.instagram.follower.Follow;
 import bg.ittalents.instagram.follower.FollowKey;
+import bg.ittalents.instagram.follower.FollowRepository;
+import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +31,21 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService extends AbstractService {
+
+    private final BCryptPasswordEncoder encoder;
+    private final FollowRepository followRepository;
+    private final JavaMailSender javaMailSender;
+
+    public UserService(UserRepository userRepository,
+                       ModelMapper mapper,
+                       BCryptPasswordEncoder encoder,
+                       FollowRepository followRepository,
+                       JavaMailSender javaMailSender) {
+        super(userRepository, mapper);
+        this.encoder = encoder;
+        this.followRepository = followRepository;
+        this.javaMailSender = javaMailSender;
+    }
 
     public void create(RegisterDTO dto) {
         //Check if email already exists
@@ -97,7 +117,7 @@ public class UserService extends AbstractService {
         }
         blocker.getBlocked().add(blocked);
         blocked.getBlockedBy().add(blocker);
-        if (blocker.getFollowing().contains(blocked)){
+        if (blocker.getFollowing().contains(blocked)) {
             blocker.getFollowing().remove(blocked);
             blocked.getFollowers().remove(blocker);
         }
@@ -270,7 +290,7 @@ public class UserService extends AbstractService {
     }
 
     public String generateRandomPassword() {
-        int passwordLength = (int)(Math.random() * 3) + 8; // random password length between 8 and 10 characters
+        int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
         String uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         String lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
         String numbers = "0123456789";
@@ -281,7 +301,7 @@ public class UserService extends AbstractService {
 
         Random rand = new Random();
 
-        for(int i = 0; i < passwordLength; i++) {
+        for (int i = 0; i < passwordLength; i++) {
             password += allCharacters.charAt(rand.nextInt(allCharacters.length()));
         }
 

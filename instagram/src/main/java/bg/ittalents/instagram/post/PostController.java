@@ -10,6 +10,7 @@ import bg.ittalents.instagram.post.DTOs.SearchRequestDTO;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.SneakyThrows;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -73,7 +74,7 @@ public class PostController extends AbstractController {
     //     View all by location
     @PostMapping("/posts/location")
     public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByLocation(
-            @RequestBody SearchRequestDTO searchRequestDTO,
+            @Valid @RequestBody SearchRequestDTO searchRequestDTO,
             HttpSession session) {
         Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
                 getLoggedId(session),
@@ -99,7 +100,7 @@ public class PostController extends AbstractController {
 
     // Add post
     @PostMapping("/posts")
-    public ResponseEntity<PostWithoutCommentsDTO> addPost(@RequestBody CreatePostDTO createPostDTO,
+    public ResponseEntity<PostWithoutCommentsDTO> addPost(@Valid @RequestBody CreatePostDTO createPostDTO,
                                                           HttpSession session) {
 
         PostWithoutCommentsDTO dto = postService.addPost(getLoggedId(session), createPostDTO);
@@ -128,7 +129,7 @@ public class PostController extends AbstractController {
     // Edit caption - localhost:8080/posts/1/caption
     @PutMapping("/posts/{id}/caption")
     public ResponseEntity<String> updateCaption(@PathVariable long id,
-                                                @RequestBody CaptionDTO caption,
+                                                @Valid @RequestBody CaptionDTO caption,
                                                 HttpSession session) {
         getLoggedId(session);
         String dto = postService.updateCaption(getLoggedId(session), id, caption);

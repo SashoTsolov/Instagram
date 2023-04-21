@@ -11,9 +11,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UserResetPasswordDTO {
 
-    @NotBlank
+    @NotBlank(message = "Password must not be blank")
     @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
             message = "Weak password")
     private String newPassword;
+
+    @NotBlank(message = "Password must not be blank")
     private String confirmPassword;
 }

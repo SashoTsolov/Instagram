@@ -6,6 +6,9 @@ import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -15,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
@@ -27,12 +29,16 @@ public class UserController extends AbstractController {
 
     // GET localhost:8080/users/email?verification-token=QWERTY123456
     @PutMapping("/send/verification")
-    public void sendVerificationEmail(@RequestParam("email") String email) {
+    public void sendVerificationEmail(@Valid @RequestParam("email")
+                                      @NotBlank(message = "Email is required")
+                                      @Email(message = "Invalid email format")
+                                      String email) {
         userService.sendVerificationEmail(email);
     }
 
     @GetMapping("/verify/email")
-    public ResponseEntity<String> verifyEmail(@RequestParam("verification-token") String verificationToken) {
+    public ResponseEntity<String> verifyEmail(
+            @Valid @NotBlank @RequestParam("verification-token") String verificationToken) {
         userService.verifyEmail(verificationToken);
         return ResponseEntity.ok("Email verification successful");
     }
@@ -57,7 +63,8 @@ public class UserController extends AbstractController {
         Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowers(id, PageRequest.of(page, size));
         return ResponseEntity.ok(userBasicInfoDTOsList);
     }
-//    // GET localhost:8080/users/1/following
+
+    //    // GET localhost:8080/users/1/following
     @GetMapping("/{id}/following")
     public ResponseEntity<Slice<UserBasicInfoDTO>> getFollowing(
             @PathVariable long id,
@@ -86,7 +93,7 @@ public class UserController extends AbstractController {
 
     // POST localhost:8080/users/login
     @PostMapping("/login")
-    public UserWithoutPassAndEmailDTO login(@RequestBody UserLoginDTO dto, HttpSession session) {
+    public UserWithoutPassAndEmailDTO login(@Valid @RequestBody UserLoginDTO dto, HttpSession session) {
         //Please keep in mind that the login method does the mapping.
         if (session.getAttribute("LOGGED_ID") != null) {
             throw new UnauthorizedException("You're already logged into an account");
@@ -135,13 +142,16 @@ public class UserController extends AbstractController {
 
     //     PUT localhost:8080/users/picture
     @PutMapping("/picture")
-    public UserBasicInfoDTO uploadProfilePicture(@RequestParam("file") MultipartFile file, HttpSession session) {
+    public UserBasicInfoDTO uploadProfilePicture(@Valid @NotBlank @RequestParam("file") MultipartFile file,
+                                                 HttpSession session) {
         long userId = getLoggedId(session);
         return userService.updateProfilePicture(userId, file);
     }
 
     @GetMapping("/picture/{fileName}")
-    public ResponseEntity<Void> download(@PathVariable("fileName") String fileName, HttpServletResponse response) throws IOException {
+    @SneakyThrows
+    public ResponseEntity<Void> download(@Valid @NotBlank @PathVariable("fileName") String fileName,
+                                         HttpServletResponse response) {
         File file = userService.download(fileName);
         response.setContentType("image/jpeg");
         Files.copy(file.toPath(), response.getOutputStream());
@@ -150,7 +160,7 @@ public class UserController extends AbstractController {
 
     // PUT localhost:8080/users/password
     @PutMapping("/password")
-    public ResponseEntity<String> updatePassword(@RequestBody UserChangePasswordDTO dto, HttpSession session) {
+    public ResponseEntity<String> updatePassword(@Valid @RequestBody UserChangePasswordDTO dto, HttpSession session) {
         long userId = getLoggedId(session);
         userService.changePassword(userId, dto);
         return ResponseEntity.ok("Password changed");
@@ -166,7 +176,7 @@ public class UserController extends AbstractController {
 
     // PUT localhost:8080/users/deactivate
     @PutMapping("/deactivate")
-    public ResponseEntity<String> deactivateUser(HttpSession session, @RequestBody UserPasswordDTO dto) {
+    public ResponseEntity<String> deactivateUser(@Valid @RequestBody UserPasswordDTO dto, HttpSession session) {
         long userId = getLoggedId(session);
         boolean success = userService.deactivateUser(userId, dto);
         if (success) {
@@ -179,7 +189,7 @@ public class UserController extends AbstractController {
 
     // DELETE localhost:8080/users
     @DeleteMapping
-    public ResponseEntity<String> deleteUser(@RequestBody UserPasswordDTO dto, HttpSession session) {
+    public ResponseEntity<String> deleteUser(@Valid @RequestBody UserPasswordDTO dto, HttpSession session) {
         long userId = getLoggedId(session);
         userService.deleteUserById(userId, dto);
         session.invalidate();

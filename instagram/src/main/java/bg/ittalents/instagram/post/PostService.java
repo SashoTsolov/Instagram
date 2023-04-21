@@ -5,9 +5,11 @@ import bg.ittalents.instagram.comment.CommentRepository;
 import bg.ittalents.instagram.comment.DTOs.CommentDTO;
 import bg.ittalents.instagram.exception.NotFoundException;
 import bg.ittalents.instagram.exception.UnauthorizedException;
+import bg.ittalents.instagram.follower.FollowRepository;
 import bg.ittalents.instagram.hashtag.Hashtag;
 import bg.ittalents.instagram.hashtag.HashtagRepository;
 import bg.ittalents.instagram.location.LocationRepository;
+import bg.ittalents.instagram.media.Media;
 import bg.ittalents.instagram.post.DTOs.CaptionDTO;
 import bg.ittalents.instagram.post.DTOs.CreatePostDTO;
 import bg.ittalents.instagram.post.DTOs.PostPreviewDTO;
@@ -15,12 +17,17 @@ import bg.ittalents.instagram.post.DTOs.PostWithCommentsDTO;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
 import bg.ittalents.instagram.location.Location;
 import bg.ittalents.instagram.user.User;
+import bg.ittalents.instagram.user.UserRepository;
 import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,12 +44,19 @@ public class PostService extends AbstractService {
     private final LocationRepository locationRepository;
     private final HashtagRepository hashtagRepository;
     private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
 
-    public PostService(LocationRepository locationRepository,
-                       HashtagRepository hashtagRepository, CommentRepository commentRepository) {
+    public PostService(UserRepository userRepository,
+                       ModelMapper mapper,
+                       LocationRepository locationRepository,
+                       HashtagRepository hashtagRepository,
+                       CommentRepository commentRepository,
+                       PostRepository postRepository) {
+        super(userRepository, mapper);
         this.locationRepository = locationRepository;
         this.hashtagRepository = hashtagRepository;
         this.commentRepository = commentRepository;
+        this.postRepository = postRepository;
     }
 
     @Transactional
@@ -232,12 +246,13 @@ public class PostService extends AbstractService {
     }
 
     public String deletePost(long userId, long postId) {
-        Post post = postRepository.findByIdAndIsCreatedIsFalse(postId).
+        Post post = postRepository.findById(postId).
                 orElseThrow(() -> new NotFoundException("The post doesn't exist"));
 
         if (post.getOwner().getId() != userId) {
             throw new UnauthorizedException("You can't delete post that is not yours!");
         }
+        deleteMediaFiles(post);
         postRepository.delete(post);
         return "Post " + post.getId() + " deleted successfully!";
 //        return "postToPostWithCommentsDTO(post)";
@@ -322,5 +337,24 @@ public class PostService extends AbstractService {
 
         return postRepository.findAllByUserFollowersOrderByUploadDateDesc(userId, pageable)
                 .map(post -> postToPostWithoutCommentsDTO(userId, post));
+    }
+
+    private void deleteMediaFiles(Post post) {
+        List<Media> mediaList = post.getMediaUrls();
+        File dir = new File("uploads_user_posts_media");
+
+        if (!dir.exists()) {
+            System.out.println("Directory does not exist: " + dir.getPath());
+            return;
+        }
+
+        for (Media media : mediaList) {
+            File fileToDelete = new File(media.getMediaUrl());
+            if (fileToDelete.exists()) {
+                fileToDelete.delete();
+            } else {
+                System.out.println("File not found: " + fileToDelete.getPath());
+            }
+        }
     }
 }

@@ -2,7 +2,6 @@ package bg.ittalents.instagram.user;
 
 import bg.ittalents.instagram.comment.Comment;
 import bg.ittalents.instagram.post.Post;
-import bg.ittalents.instagram.user.DTOs.UserWithoutPassAndEmailDTO;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,42 +22,58 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
-    @Column
+
+    @Column(unique = true, length = 100)
     private String resetIdentifier;
+
     @Column
     private LocalDateTime resetIdentifierExpiry;
-    @Column
+
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
-    @Column
+
+    @Column(nullable = false, length = 100)
     private String password;
-    @Column
+
+    @Column(nullable = false, unique = true, length = 50)
     private String email;
-    @Column
+
+    @Column(length = 50)
     private String name;
+
     @Column
     private String bio;
-    @Column
+
+    @Column(nullable = false)
     private LocalDate dateOfBirth;
-    @Column
+
+    @Column(length = 1)
     private String gender;
+
     @Column
     private String profilePictureUrl;
-    @Column
+
+    @Column(nullable = false)
     private boolean isVerified;
-    @Column
+
+    @Column(unique = true, length = 100)
     private String verificationCode;
+
     @Column
     private LocalDateTime verificationCodeExpiry;
-    @Column
+
+    @Column(nullable = false)
     private Timestamp dateTimeCreated;
-    @Column
+
+    @Column(nullable = false)
     private boolean isDeactivated;
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+
+    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments;
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Post> posts;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "users_block_users",
         joinColumns = @JoinColumn(name = "blocking_user_id"),
@@ -66,10 +81,10 @@ public class User {
     )
     private Set<User> blocked = new HashSet<>();
 
-    @ManyToMany(mappedBy = "blocked")
+    @ManyToMany(mappedBy = "blocked", fetch = FetchType.LAZY)
     private List<User> blockedBy;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "followers",
             joinColumns = @JoinColumn(name = "followed_user_id"),
@@ -77,10 +92,10 @@ public class User {
     )
     private Set<User> followers = new HashSet<>();
 
-    @ManyToMany(mappedBy = "followers")
+    @ManyToMany(mappedBy = "followers", fetch = FetchType.LAZY)
     private Set<User> following = new HashSet<>();
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_like_posts",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -88,7 +103,7 @@ public class User {
     )
     private List<Post> likedPosts;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_have_tagged_posts",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -96,7 +111,7 @@ public class User {
     )
     private List<Post> taggedPosts;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_save_posts",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -104,7 +119,7 @@ public class User {
     )
     private List<Post> savedPosts;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "comments_have_likes",
             joinColumns = @JoinColumn(name = "user_id"),

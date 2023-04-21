@@ -11,13 +11,15 @@ import lombok.Setter;
 @NoArgsConstructor
 public class UserChangePasswordDTO {
 
-        @NotBlank
-        private String currentPassword;
+    @NotBlank(message = "Current password must not be blank")
+    private String currentPassword;
 
-        @NotBlank
-        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
-                message = "Weak password")
-        private String newPassword;
+    @NotBlank(message = "New password must not be blank")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
+            message = "New password must contain at least 8 characters, including one uppercase letter," +
+                    " one lowercase letter, one number and one special character")
+    private String newPassword;
 
-        private String confirmNewPassword;
+    @NotBlank(message = "Confirm new password must not be blank")
+    private String confirmNewPassword;
 }

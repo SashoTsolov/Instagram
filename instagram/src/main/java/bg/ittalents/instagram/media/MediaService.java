@@ -26,14 +26,14 @@ public class MediaService {
     private final PostRepository postRepository;
     private final MediaRepository mediaRepository;
     private final PostService postService;
-    private final ModelMapper mediaMapper;
+    private final ModelMapper mapper;
 
     public MediaService(PostRepository postRepository,
-                        MediaRepository mediaRepository, PostService postService, ModelMapper mediaMapper) {
+                        MediaRepository mediaRepository, PostService postService, ModelMapper mapper) {
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
         this.postService = postService;
-        this.mediaMapper = mediaMapper;
+        this.mapper = mapper;
     }
 
     @SneakyThrows
@@ -41,7 +41,7 @@ public class MediaService {
     public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
 
         Post post = postRepository.findByIdAndIsCreatedIsFalse(postId)
-                .orElseThrow(() -> new NotFoundException("Post doesn't exist"));
+                .orElseThrow(() -> new BadRequestException("You can't add media to this post!"));
 
         if (post.getIsCreated()) {
             throw new BadRequestException("You cannot add media to an already created post!");
@@ -62,15 +62,13 @@ public class MediaService {
             media.setMediaUrl(url);
             media.setPost(post);
             allMedia.add(media);
-            post.getMediaUrls().add(media);
         }
         mediaRepository.saveAll(allMedia);
-        postService.updatePostInfo(post);
-
         post.setIsCreated(true);
-        postRepository.save(post);
-        return mediaMapper.map(post, PostWithoutCommentsDTO.class);
+        postService.updatePostInfo(post);
+        return mapper.map(post, PostWithoutCommentsDTO.class);
     }
+
 
     public File download(String fileName) {
         File dir = new File("uploads_user_posts_media");
