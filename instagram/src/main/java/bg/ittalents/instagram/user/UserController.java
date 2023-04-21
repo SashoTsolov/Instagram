@@ -1,6 +1,6 @@
 package bg.ittalents.instagram.user;
 
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpServletResponse;

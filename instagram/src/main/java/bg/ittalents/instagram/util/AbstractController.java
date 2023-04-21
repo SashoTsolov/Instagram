@@ -1,6 +1,6 @@
 package bg.ittalents.instagram.util;
 
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpSession;
 
 public abstract class AbstractController {

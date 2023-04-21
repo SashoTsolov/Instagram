@@ -1,9 +1,9 @@
 package bg.ittalents.instagram.advice;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
-import bg.ittalents.instagram.exceptions.NotFoundException;
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
-import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
+import bg.ittalents.instagram.exception.BadRequestException;
+import bg.ittalents.instagram.exception.NotFoundException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
+import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;

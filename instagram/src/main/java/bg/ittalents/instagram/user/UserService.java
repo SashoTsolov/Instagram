@@ -1,9 +1,9 @@
 package bg.ittalents.instagram.user;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
-import bg.ittalents.instagram.exceptions.NotFoundException;
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
-import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
+import bg.ittalents.instagram.exception.BadRequestException;
+import bg.ittalents.instagram.exception.NotFoundException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
+import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import bg.ittalents.instagram.follower.Follow;
 import bg.ittalents.instagram.follower.FollowKey;
 import bg.ittalents.instagram.user.DTOs.*;
@@ -13,7 +13,6 @@ import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -211,7 +210,7 @@ public class UserService extends AbstractService {
     public UserBasicInfoDTO updateProfilePicture(long userId, MultipartFile file) {
         String ext = FilenameUtils.getExtension(file.getOriginalFilename());
         String name = UUID.randomUUID().toString() + "." + ext;
-        File dir = new File("pfpUploads");
+        File dir = new File("uploads_user_profile_picture");
         if (!dir.exists()) {
             dir.mkdirs();
         }
@@ -225,7 +224,7 @@ public class UserService extends AbstractService {
     }
 
     public File download(String fileName) {
-        File dir = new File("pfpUploads");
+        File dir = new File("uploads_user_profile_picture");
         File f = new File(dir, fileName);
         if (f.exists()) {
             return f;

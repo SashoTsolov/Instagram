@@ -1,6 +1,6 @@
 package bg.ittalents.instagram.util;
 
-import bg.ittalents.instagram.exceptions.NotFoundException;
+import bg.ittalents.instagram.exception.NotFoundException;
 import bg.ittalents.instagram.follower.FollowRepository;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.UserRepository;

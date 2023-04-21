@@ -1,7 +1,7 @@
 package bg.ittalents.instagram.media;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
-import bg.ittalents.instagram.exceptions.NotFoundException;
+import bg.ittalents.instagram.exception.BadRequestException;
+import bg.ittalents.instagram.exception.NotFoundException;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.post.Post;
@@ -50,7 +50,7 @@ public class MediaService {
         for (MultipartFile file : files) {
             final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
             final String name = UUID.randomUUID().toString() + "." + ext;
-            final File dir = new File("upload_user_posts_media");
+            final File dir = new File("uploads_user_posts_media");
             if (!dir.exists()) {
                 dir.mkdirs();
             }
@@ -73,7 +73,7 @@ public class MediaService {
     }
 
     public File download(String fileName) {
-        File dir = new File("upload_user_posts_media");
+        File dir = new File("uploads_user_posts_media");
         File file = new File(dir, fileName);
         if (file.exists()) {
             return file;
