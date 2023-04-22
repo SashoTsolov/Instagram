@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,20 +23,15 @@ public class CommentService extends AbstractService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-    private final UserRepository userRepository;
-    private final ModelMapper mapper;
 
     public CommentService(UserRepository userRepository,
+                          JavaMailSender javaMailSender,
                           ModelMapper mapper,
                           CommentRepository commentRepository,
-                          PostRepository postRepository,
-                          UserRepository userRepository1,
-                          ModelMapper mapper1) {
-        super(userRepository, mapper);
+                          PostRepository postRepository) {
+        super(userRepository, javaMailSender, mapper);
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
-        this.userRepository = userRepository1;
-        this.mapper = mapper1;
     }
 
     public Slice<CommentDTO> getCommentReplies(final long userId, final long commentId, final Pageable pageable) {

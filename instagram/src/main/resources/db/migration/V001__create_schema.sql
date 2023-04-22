@@ -15,6 +15,7 @@ CREATE TABLE users (
   verification_code VARCHAR(100) UNIQUE,
   verification_code_expiry TIMESTAMP,
   date_time_created TIMESTAMP NOT NULL,
+  last_login_time TIMESTAMP,
   is_deactivated TINYINT NOT NULL
 );
 

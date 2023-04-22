@@ -131,6 +131,7 @@ public class UserController extends AbstractController {
     // POST localhost:8080/users/logout
     @PostMapping("/logout")
     public ResponseEntity<String> logout(final HttpSession session) {
+        userService.logout(getLoggedId());
         session.invalidate();
         return ResponseEntity.ok("Logout successful");
     }

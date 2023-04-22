@@ -4,14 +4,17 @@ import bg.ittalents.instagram.exception.NotFoundException;
 import bg.ittalents.instagram.user.UserRepository;
 import org.modelmapper.ModelMapper;
 import bg.ittalents.instagram.user.User;
+import org.springframework.mail.javamail.JavaMailSender;
 
 public abstract class AbstractService {
 
     protected final UserRepository userRepository;
+    protected final JavaMailSender javaMailSender;
     protected final ModelMapper mapper;
 
-    public AbstractService(UserRepository userRepository, ModelMapper mapper) {
+    public AbstractService(UserRepository userRepository, JavaMailSender javaMailSender, ModelMapper mapper) {
         this.userRepository = userRepository;
+        this.javaMailSender = javaMailSender;
         this.mapper = mapper;
     }
 

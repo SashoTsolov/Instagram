@@ -22,6 +22,7 @@ import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -44,12 +45,13 @@ public class PostService extends AbstractService {
     private final PostRepository postRepository;
 
     public PostService(UserRepository userRepository,
+                       JavaMailSender javaMailSender,
                        ModelMapper mapper,
                        LocationRepository locationRepository,
                        HashtagRepository hashtagRepository,
                        CommentRepository commentRepository,
                        PostRepository postRepository) {
-        super(userRepository, mapper);
+        super(userRepository, javaMailSender, mapper);
         this.locationRepository = locationRepository;
         this.hashtagRepository = hashtagRepository;
         this.commentRepository = commentRepository;

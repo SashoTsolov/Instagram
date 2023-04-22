@@ -66,6 +66,9 @@ public class User {
     private Timestamp dateTimeCreated;
 
     @Column(nullable = false)
+    private Timestamp lastLoginTime;
+
+    @Column(nullable = false)
     private boolean isDeactivated;
 
     @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
@@ -75,9 +78,9 @@ public class User {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "users_block_users",
-        joinColumns = @JoinColumn(name = "blocking_user_id"),
-        inverseJoinColumns = @JoinColumn(name = "blocked_user_id")
+            name = "users_block_users",
+            joinColumns = @JoinColumn(name = "blocking_user_id"),
+            inverseJoinColumns = @JoinColumn(name = "blocked_user_id")
     )
     private Set<User> blocked = new HashSet<>();
 

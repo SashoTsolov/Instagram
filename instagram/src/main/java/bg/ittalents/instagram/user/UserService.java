@@ -34,17 +34,15 @@ public class UserService extends AbstractService {
 
     private final BCryptPasswordEncoder encoder;
     private final FollowRepository followRepository;
-    private final JavaMailSender javaMailSender;
 
     public UserService(UserRepository userRepository,
+                       JavaMailSender javaMailSender,
                        ModelMapper mapper,
                        BCryptPasswordEncoder encoder,
-                       FollowRepository followRepository,
-                       JavaMailSender javaMailSender) {
-        super(userRepository, mapper);
+                       FollowRepository followRepository) {
+        super(userRepository, javaMailSender, mapper);
         this.encoder = encoder;
         this.followRepository = followRepository;
-        this.javaMailSender = javaMailSender;
     }
 
     public void create(final RegisterDTO dto) {
@@ -199,7 +197,7 @@ public class UserService extends AbstractService {
         final User user = getUserById(userId);
         if (encoder.matches(dto.getPassword(), user.getPassword())) {
             user.setDeactivated(true);
-            userRepository.save(user);
+            logout(userId);
             return true;
         }
         return false;
@@ -347,13 +345,18 @@ public class UserService extends AbstractService {
 
     @Transactional
     public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(final long userId) {
-        final User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        final User user = getUserById(userId);
         final int numFollowers = user.getFollowers().size();
         final int numFollowing = user.getFollowing().size();
         final int numPosts = user.getPosts().size();
 
         return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(),
                 user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);
+    }
+
+    public void logout(final long userId) {
+        final User user = getUserById(userId);
+        user.setLastLoginTime(Timestamp.valueOf(LocalDateTime.now()));
+        userRepository.save(user);
     }
 }
