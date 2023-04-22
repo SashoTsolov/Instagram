@@ -1,9 +1,9 @@
 package bg.ittalents.instagram.user;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
-import bg.ittalents.instagram.exceptions.NotFoundException;
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
-import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
+import bg.ittalents.instagram.exception.BadRequestException;
+import bg.ittalents.instagram.exception.NotFoundException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
+import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import bg.ittalents.instagram.follower.Follow;
 import bg.ittalents.instagram.follower.FollowKey;
 import bg.ittalents.instagram.user.DTOs.*;
@@ -11,9 +11,9 @@ import bg.ittalents.instagram.util.AbstractService;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,7 +49,6 @@ public class UserService extends AbstractService {
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
         userRepository.save(user);
-        System.out.println("XD?");
 
         // Send verification email to user
         String subject = "Account Verification";
@@ -112,9 +111,8 @@ public class UserService extends AbstractService {
         return code;
     }
 
-    //TODO
     @Transactional
-    public void follow(long followerId, long followedId) {
+    public String follow(long followerId, long followedId) {
         User follower = getUserById(followerId);
         User followed = getUserById(followedId);
         if (follower == null || followed == null) {
@@ -124,8 +122,14 @@ public class UserService extends AbstractService {
         if (followerId == followedId) {
             throw new BadRequestException("You can't follow yourself");
         }
+        if (follower.getBlocked().contains(followed) || follower.getBlockedBy().contains(followed)){
+            throw new BadRequestException("Unable to follow user");
+        }
         if (follower.getFollowing().contains(followed)) {
             followRepository.deleteById(followKey);
+            userRepository.save(follower);
+            userRepository.save(followed);
+            return followed.getUsername() + " unfollowed";
         }
         // create and save the Follower entity
         Follow followEntity = new Follow();
@@ -134,19 +138,7 @@ public class UserService extends AbstractService {
         followEntity.setFollowedUser(followed);
         followEntity.setDateTimeOfFollow(Timestamp.valueOf(LocalDateTime.now()));
         followRepository.save(followEntity);
-    }
-
-    //TODO -- make this into a query and filter by blocked/blockedBy/deactivated
-    public List<UserBasicInfoDTO> searchUsersByUsername(String username) {
-        List<User> users = userRepository.findAll();
-        List<User> filteredUsers = users.stream()
-                .filter(user -> containsIgnoreCase(user.getUsername(), username))
-                .filter(user -> !user.isDeactivated())
-                .limit(55)
-                .toList();
-        System.out.println(filteredUsers.size());
-        return filteredUsers.stream()
-                .map(user -> mapper.map(user, UserBasicInfoDTO.class)).collect(Collectors.toList());
+        return followed.getUsername() + " followed";
     }
 
     public void changePassword(long userId, UserChangePasswordDTO dto) {
@@ -170,7 +162,7 @@ public class UserService extends AbstractService {
 
     public void deleteUserById(long userId, UserPasswordDTO dto) {
         User user = getUserById(userId);
-        if (encoder.matches(dto.getPassword(), user.getPassword())) {
+        if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new BadRequestException("Wrong credentials");
         }
         userRepository.delete(user);
@@ -207,25 +199,40 @@ public class UserService extends AbstractService {
         userRepository.save(user);
     }
 
+    @Transactional
     @SneakyThrows
     public UserBasicInfoDTO updateProfilePicture(long userId, MultipartFile file) {
         String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+        if (!Arrays.asList("jpg", "jpeg", "png").contains(ext)) {
+            throw new BadRequestException("File type not supported. Only JPG, JPEG and PNG formats are allowed.");
+        }
         String name = UUID.randomUUID().toString() + "." + ext;
-        File dir = new File("pfpUploads");
+        File dir = new File("uploads_user_profile_picture");
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        File f = new File(dir, name);
-        Files.copy(file.getInputStream(), f.toPath());
-        String url = dir.getName() + File.separator + f.getName();
+        File oldFile = null;
         User user = getUserById(userId);
+        if (user.getProfilePictureUrl() != null) {
+            oldFile = new File(user.getProfilePictureUrl());
+            if (oldFile.exists()) {
+                oldFile.delete();
+            }
+        }
+        File newFile = new File(dir, name);
+        Files.copy(file.getInputStream(), newFile.toPath());
+        String url = dir.getName() + File.separator + newFile.getName();
         user.setProfilePictureUrl(url);
         userRepository.save(user);
+        if (oldFile != null) {
+            oldFile.delete();
+        }
         return mapper.map(user, UserBasicInfoDTO.class);
     }
 
+
     public File download(String fileName) {
-        File dir = new File("pfpUploads");
+        File dir = new File("uploads_user_profile_picture");
         File f = new File(dir, fileName);
         if (f.exists()) {
             return f;
@@ -262,31 +269,20 @@ public class UserService extends AbstractService {
         sendEmail(user.getEmail(), subject, text);
     }
 
-    private void sendEmail(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        javaMailSender.send(message);
+    public void sendEmail(String to, String subject, String text) {
+        new Thread(() -> {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            javaMailSender.send(message);
+        }).start();
     }
 
     public String generateRandomPassword() {
-        int passwordLength = (int)(Math.random() * 3) + 8; // random password length between 8 and 10 characters
-        String uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        String lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
-        String numbers = "0123456789";
-        String symbols = "!@#$%^&?";
-
-        String password = "";
-        String allCharacters = uppercaseLetters + lowercaseLetters + numbers + symbols;
-
-        Random rand = new Random();
-
-        for(int i = 0; i < passwordLength; i++) {
-            password += allCharacters.charAt(rand.nextInt(allCharacters.length()));
-        }
-
-        return password;
+        int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
+        String allCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&?";
+        return RandomStringUtils.random(passwordLength, allCharacters);
     }
 
     public void sendVerificationEmail(String email) {
@@ -332,14 +328,10 @@ public class UserService extends AbstractService {
     }
 
     public Slice<UserBasicInfoDTO> getFollowing(long id, Pageable pageable) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
+        return userRepository.findAllFollowedOrderByDateOfFollowDesc(id, pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
 
-    @Transactional
     public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -348,5 +340,18 @@ public class UserService extends AbstractService {
         int numPosts = user.getPosts().size();
 
         return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(), user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);
+    }
+
+    public List<UserBasicInfoDTO> getSearchResult(String username, long userId) {
+        List<User> list = userRepository.findAllUsersOrderById(username, userId);
+        List<UserBasicInfoDTO> result = new ArrayList<>();
+        for (User user : list){
+            UserBasicInfoDTO dto = mapper.map(user, UserBasicInfoDTO.class);
+            result.add(dto);
+        }
+        if (result.size() < 1){
+            throw new NotFoundException("No users found");
+        }
+        return result;
     }
 }
