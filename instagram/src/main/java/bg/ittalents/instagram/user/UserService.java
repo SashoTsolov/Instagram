@@ -92,6 +92,9 @@ public class UserService extends AbstractService {
 
     public UserWithoutPassAndEmailDTO getById(final long id) {
         final User user = getUserById(id);
+        if (user.isDeactivated()){
+            throw new NotFoundException("User not found");
+        }
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
@@ -282,7 +285,7 @@ public class UserService extends AbstractService {
         final String text = "This is your new password: \n" + generatePassword;
         new Thread(() -> sendEmail(user.getEmail(), subject, text)).start();
     }
-    
+
     public void sendEmail(final String to, final String subject, final String text) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
@@ -292,9 +295,21 @@ public class UserService extends AbstractService {
     }
 
     public String generateRandomPassword() {
-        final int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
-        final String allCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&?";
-        return RandomStringUtils.random(passwordLength, allCharacters);
+        final int passwordLength = (int)(Math.random() * 3) + 8; // random password length between 8 and 10 characters
+        final String uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        final String lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
+        final String numbers = "0123456789";
+        final String symbols = "!@#$%^&?";
+
+        String password = "";
+        final String allCharacters = uppercaseLetters + lowercaseLetters + numbers + symbols;
+
+        final Random rand = new Random();
+
+        for(int i = 0; i < passwordLength; i++) {
+            password += allCharacters.charAt(rand.nextInt(allCharacters.length()));
+        }
+        return password;
     }
 
     public void sendVerificationEmail(final String email) {
@@ -325,7 +340,6 @@ public class UserService extends AbstractService {
     public Slice<UserBasicInfoDTO> getFollowers(final long id, final Pageable pageable) {
         final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
         return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
@@ -340,19 +354,21 @@ public class UserService extends AbstractService {
     }
 
     public Slice<UserBasicInfoDTO> getFollowing(final long id, final Pageable pageable) {
-        return userRepository.findAllFollowedOrderByDateOfFollowDesc(id, pageable)
+        final User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+        return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
 
     @Transactional
     public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(final long userId) {
         final User user = getUserById(userId);
-        final int numFollowers = user.getFollowers().size();
-        final int numFollowing = user.getFollowing().size();
+        final int numFollowers = userRepository.countFollowersByUserIdAndDeactivatedFalse(userId);
+        final int numFollowing = userRepository.countFollowingByUserIdAndDeactivatedFalse(userId);
         final int numPosts = user.getPosts().size();
 
         return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(),
-                user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);
+                user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts, user.getBio());
     }
 
     public void logout(final long userId) {

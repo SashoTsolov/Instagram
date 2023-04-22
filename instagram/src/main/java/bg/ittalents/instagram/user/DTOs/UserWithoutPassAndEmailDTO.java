@@ -25,9 +25,9 @@ public class UserWithoutPassAndEmailDTO {
     private int numFollowing;
     private int numPosts;
 
-    @ConstructorProperties({"id", "name", "username", "profilePictureUrl", "numFollowers", "numFollowing", "numPosts"})
-    public UserWithoutPassAndEmailDTO(long id, String name, String username, String profilePictureUrl, int numFollowers,
-                                      int numFollowing, int numPosts) {
+    public UserWithoutPassAndEmailDTO(final long id, final  String name, final  String username,
+                                      final String profilePictureUrl, final  int numFollowers,
+                                      final int numFollowing, final  int numPosts, final  String bio) {
         this.id = id;
         this.name = name;
         this.username = username;
@@ -35,5 +35,6 @@ public class UserWithoutPassAndEmailDTO {
         this.numFollowers = numFollowers;
         this.numFollowing = numFollowing;
         this.numPosts = numPosts;
+        this.bio = bio;
     }
 }
