@@ -39,17 +39,17 @@ public class MediaService {
 
     @SneakyThrows
     @Transactional
-    public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
+    public PostWithoutCommentsDTO upload(final List<MultipartFile> files, final long postId) {
 
-        Post post = postRepository.findByIdAndIsCreatedIsFalse(postId)
+        final Post post = postRepository.findByIdAndIsCreatedIsFalse(postId)
                 .orElseThrow(() -> new BadRequestException("You can't add media to this post!"));
 
         if (post.getIsCreated()) {
             throw new BadRequestException("You cannot add media to an already created post!");
         }
-        List<Media> allMedia = new ArrayList<>();
-        for (MultipartFile file : files) {
-            final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+        final List<Media> allMedia = new ArrayList<>();
+        for (MultipartFile currentFile : files) {
+            final String ext = FilenameUtils.getExtension(currentFile.getOriginalFilename());
             if (!Arrays.asList("jpg", "jpeg", "png", "mp4").contains(ext)) {
                 throw new BadRequestException("File type not supported. Only JPG, JPEG, PNG, and MP4 formats are allowed.");
             }
@@ -58,11 +58,11 @@ public class MediaService {
             if (!dir.exists()) {
                 dir.mkdirs();
             }
-            File f = new File(dir, name);
-            Files.copy(file.getInputStream(), f.toPath());
-            String url = dir.getName() + File.separator + f.getName();
+            final File file = new File(dir, name);
+            Files.copy(currentFile.getInputStream(), file.toPath());
+            final String url = dir.getName() + File.separator + file.getName();
 
-            Media media = new Media();
+            final Media media = new Media();
             media.setMediaUrl(url);
             media.setPost(post);
             allMedia.add(media);
@@ -74,9 +74,9 @@ public class MediaService {
     }
 
 
-    public File download(String fileName) {
-        File dir = new File("uploads_user_posts_media");
-        File file = new File(dir, fileName);
+    public File download(final String fileName) {
+        final File dir = new File("uploads_user_posts_media");
+        final File file = new File(dir, fileName);
         if (file.exists()) {
             return file;
         }

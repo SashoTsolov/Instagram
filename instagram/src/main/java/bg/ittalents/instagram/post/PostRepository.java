@@ -13,7 +13,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByIdAndIsCreatedIsFalse(long id);
 
-
     @Query(value = """
             SELECT p.*
             FROM posts p

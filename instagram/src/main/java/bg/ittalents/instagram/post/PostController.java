@@ -9,6 +9,7 @@ import bg.ittalents.instagram.post.DTOs.PostWithCommentsDTO;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
 import bg.ittalents.instagram.post.DTOs.SearchRequestDTO;
 import bg.ittalents.instagram.util.AbstractController;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -42,7 +43,11 @@ public class PostController extends AbstractController {
     private final PostService postService;
     private final MediaService mediaService;
 
-    public PostController(PostService postService, MediaService mediaService) {
+    public PostController(HttpServletRequest request,
+                          HttpSession session,
+                          PostService postService,
+                          MediaService mediaService) {
+        super(request, session);
         this.postService = postService;
         this.mediaService = mediaService;
     }
@@ -51,11 +56,10 @@ public class PostController extends AbstractController {
     @GetMapping("/posts/{id}")
     public ResponseEntity<PostWithCommentsDTO> getPostById(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
-        PostWithCommentsDTO dto = postService.getPostById(getLoggedId(session), id,
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
+
+        final PostWithCommentsDTO dto = postService.getPostById(getLoggedId(), id,
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(dto);
     }
@@ -65,14 +69,11 @@ public class PostController extends AbstractController {
     @GetMapping("/users/{id}/posts")
     public ResponseEntity<Slice<PostPreviewDTO>> getUserPostsById(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
 
-        getLoggedId(session);
-        Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(
-                getLoggedId(session),
+        final Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserPostsById(
+                getLoggedId(),
                 id,
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(postPreviewDTOsList);
@@ -81,10 +82,10 @@ public class PostController extends AbstractController {
     //     View all by location
     @PostMapping("/posts/location")
     public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByLocation(
-            @RequestBody @Valid SearchRequestDTO searchRequestDTO,
-            HttpSession session) {
-        Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
-                getLoggedId(session),
+            @RequestBody @Valid final SearchRequestDTO searchRequestDTO) {
+
+        final Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByLocation(
+                getLoggedId(),
                 searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
@@ -95,9 +96,10 @@ public class PostController extends AbstractController {
     // View all by hashtag
     @PostMapping("/posts/hashtag")
     public ResponseEntity<Slice<PostPreviewDTO>> searchPostsByHashtags(
-            @RequestBody @Valid SearchRequestDTO searchRequestDTO, HttpSession session) {
-        Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
-                getLoggedId(session),
+            @RequestBody @Valid final SearchRequestDTO searchRequestDTO) {
+
+        final Slice<PostPreviewDTO> postPreviewDTOsList = postService.searchPostsByHashtags(
+                getLoggedId(),
                 searchRequestDTO.getSearchString(),
                 PageRequest.of(searchRequestDTO.getPage(),
                         searchRequestDTO.getSize()));
@@ -108,32 +110,30 @@ public class PostController extends AbstractController {
     // Add post
     @PostMapping("/posts")
     public ResponseEntity<PostWithoutCommentsDTO> addPost(
-            @RequestBody @Valid CreatePostDTO createPostDTO,
-            HttpSession session) {
+            @RequestBody @Valid final CreatePostDTO createPostDTO) {
 
-        PostWithoutCommentsDTO dto = postService.addPost(getLoggedId(session), createPostDTO);
+        final PostWithoutCommentsDTO dto = postService.addPost(getLoggedId(), createPostDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     // Add media
     @PostMapping("/posts/{id}/media")
     public ResponseEntity<PostWithoutCommentsDTO> addMedia(
-            @RequestParam("file") List<MultipartFile> files,
+            @RequestParam("file") final List<MultipartFile> files,
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            HttpSession session) {
-        getLoggedId(session);
-        PostWithoutCommentsDTO dto = mediaService.upload(files, id);
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
+
+        getLoggedId();
+        final PostWithoutCommentsDTO dto = mediaService.upload(files, id);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     // View media
     @SneakyThrows
     @GetMapping("/posts/media/{fileName}")
-    public void download(@PathVariable("fileName") String fileName, HttpServletResponse response, HttpSession session) {
-        getLoggedId(session);
-        File file = mediaService.download(fileName);
+    public void download(@PathVariable("fileName") final String fileName, final HttpServletResponse response) {
+        getLoggedId();
+        final File file = mediaService.download(fileName);
         Files.copy(file.toPath(), response.getOutputStream());
     }
 
@@ -141,12 +141,10 @@ public class PostController extends AbstractController {
     @PutMapping("/posts/{id}/caption")
     public ResponseEntity<String> updateCaption(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            @RequestBody @Valid CaptionDTO caption,
-            HttpSession session) {
-        getLoggedId(session);
-        String dto = postService.updateCaption(getLoggedId(session), id, caption);
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
+            @RequestBody @Valid final CaptionDTO caption) {
+
+        final String dto = postService.updateCaption(getLoggedId(), id, caption);
         return ResponseEntity.ok(dto);
     }
 
@@ -155,10 +153,9 @@ public class PostController extends AbstractController {
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<String> deletePost(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id, HttpSession session) {
-        getLoggedId(session);
-        String dto = postService.deletePost(getLoggedId(session), id);
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
+
+        final String dto = postService.deletePost(getLoggedId(), id);
         return ResponseEntity.ok(dto);
     }
 
@@ -166,29 +163,27 @@ public class PostController extends AbstractController {
     @PostMapping("/posts/{id}/like")
     public ResponseEntity<Integer> likePost(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id, HttpSession session) {
-        int numberOfLikes = postService.likePost(getLoggedId(session), id);
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
+
+        final int numberOfLikes = postService.likePost(getLoggedId(), id);
         return ResponseEntity.ok(numberOfLikes);
     }
 
     @PostMapping("/posts/{id}/save")
     public ResponseEntity<String> savePost(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id, HttpSession session) {
-        getLoggedId(session);
-        String dto = postService.savePost(getLoggedId(session), id);
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
+
+        final String dto = postService.savePost(getLoggedId(), id);
         return ResponseEntity.ok(dto);
     }
 
     // View my saved posts
     @GetMapping("/posts/saved")
     public ResponseEntity<Slice<PostPreviewDTO>> getUserSavedPosts(
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
-        getLoggedId(session);
-        Slice<PostPreviewDTO> savedPosts = postService.getUserSavedPosts(getLoggedId(session),
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
+
+        final Slice<PostPreviewDTO> savedPosts = postService.getUserSavedPosts(getLoggedId(),
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(savedPosts);
     }
@@ -196,13 +191,11 @@ public class PostController extends AbstractController {
     @GetMapping("/users/{id}/tagged")
     public ResponseEntity<Slice<PostPreviewDTO>> getUserTaggedPostsById(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
-        getLoggedId(session);
-        Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserTaggedPostsById(
-                getLoggedId(session),
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
+
+        final Slice<PostPreviewDTO> postPreviewDTOsList = postService.getUserTaggedPostsById(
+                getLoggedId(),
                 id,
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(postPreviewDTOsList);
@@ -211,11 +204,10 @@ public class PostController extends AbstractController {
     // View recent posts from followed users - Feed
     @GetMapping("/posts")
     public ResponseEntity<Slice<PostWithoutCommentsDTO>> getPostsFromFeed(
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
 
-        Slice<PostWithoutCommentsDTO> feed = postService.getPostsFromFeed(
-                getLoggedId(session),
+        final Slice<PostWithoutCommentsDTO> feed = postService.getPostsFromFeed(
+                getLoggedId(),
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(feed);
     }

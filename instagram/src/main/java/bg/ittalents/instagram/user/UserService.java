@@ -47,7 +47,7 @@ public class UserService extends AbstractService {
         this.javaMailSender = javaMailSender;
     }
 
-    public void create(RegisterDTO dto) {
+    public void create(final RegisterDTO dto) {
         //Check if email already exists
         if (userRepository.existsByEmail(dto.getEmail())) {
             throw new UserAlreadyExistsException("Email already being used");
@@ -60,7 +60,7 @@ public class UserService extends AbstractService {
         if (!dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new BadRequestException("Password confirmation mismatch");
         }
-        User user = mapper.map(dto, User.class);
+        final User user = mapper.map(dto, User.class);
         user.setPassword(encoder.encode(user.getPassword()));
         user.setVerified(false);
         user.setDeactivated(false);
@@ -70,14 +70,15 @@ public class UserService extends AbstractService {
         userRepository.save(user);
 
         // Send verification email to user
-        String subject = "Account Verification";
-        String verificationLink = "https://localhost:8080/users/verify?verification-token=" + user.getVerificationCode();
-        String text = "Click the link below to verify your account: \n" + verificationLink;
+        final String subject = "Account Verification";
+        final String verificationLink = "https://localhost:8080/users/verify?verification-token="
+                + user.getVerificationCode();
+        final String text = "Click the link below to verify your account: \n" + verificationLink;
         sendEmail(user.getEmail(), subject, text);
     }
 
-    public UserWithoutPassAndEmailDTO login(UserLoginDTO dto) {
-        User user = getUserByEmail(dto.getEmail());
+    public UserWithoutPassAndEmailDTO login(final UserLoginDTO dto) {
+        final User user = getUserByEmail(dto.getEmail());
         //Check if password matches with the one in the database
         if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Wrong credentials");
@@ -92,16 +93,16 @@ public class UserService extends AbstractService {
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
-    public UserWithoutPassAndEmailDTO getById(long id) {
-        User user = getUserById(id);
+    public UserWithoutPassAndEmailDTO getById(final long id) {
+        final User user = getUserById(id);
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
     //This method should be ready to go!!!
     @Transactional
-    public void block(long blockingUserId, long blockedUserId) {
-        User blocker = getUserById(blockingUserId);
-        User blocked = getUserById(blockedUserId);
+    public void block(final long blockingUserId, final long blockedUserId) {
+        final User blocker = getUserById(blockingUserId);
+        final User blocked = getUserById(blockedUserId);
         //Check if user is trying to block himself
         if (blocker.getId() == blocked.getId()) {
             throw new BadRequestException("You can't block yourself");
@@ -125,20 +126,20 @@ public class UserService extends AbstractService {
     }
 
     private String generateVerificationCode() {
-        UUID uuid = UUID.randomUUID();
-        String code = uuid.toString().substring(0, 12);
+        final UUID uuid = UUID.randomUUID();
+        final String code = uuid.toString().substring(0, 12);
         return code;
     }
 
     //TODO
     @Transactional
-    public void follow(long followerId, long followedId) {
-        User follower = getUserById(followerId);
-        User followed = getUserById(followedId);
+    public void follow(final long followerId, final long followedId) {
+        final User follower = getUserById(followerId);
+        final User followed = getUserById(followedId);
         if (follower == null || followed == null) {
             throw new NotFoundException("User not found");
         }
-        FollowKey followKey = new FollowKey(followed.getId(), follower.getId());
+        final FollowKey followKey = new FollowKey(followed.getId(), follower.getId());
         if (followerId == followedId) {
             throw new BadRequestException("You can't follow yourself");
         }
@@ -146,7 +147,7 @@ public class UserService extends AbstractService {
             followRepository.deleteById(followKey);
         }
         // create and save the Follower entity
-        Follow followEntity = new Follow();
+        final Follow followEntity = new Follow();
         followEntity.setId(followKey);
         followEntity.setFollowingUser(follower);
         followEntity.setFollowedUser(followed);
@@ -155,9 +156,9 @@ public class UserService extends AbstractService {
     }
 
     //TODO -- make this into a query and filter by blocked/blockedBy/deactivated
-    public List<UserBasicInfoDTO> searchUsersByUsername(String username) {
-        List<User> users = userRepository.findAll();
-        List<User> filteredUsers = users.stream()
+    public List<UserBasicInfoDTO> searchUsersByUsername(final String username) {
+        final List<User> users = userRepository.findAll();
+        final List<User> filteredUsers = users.stream()
                 .filter(user -> containsIgnoreCase(user.getUsername(), username))
                 .filter(user -> !user.isDeactivated())
                 .limit(55)
@@ -167,8 +168,8 @@ public class UserService extends AbstractService {
                 .map(user -> mapper.map(user, UserBasicInfoDTO.class)).collect(Collectors.toList());
     }
 
-    public void changePassword(long userId, UserChangePasswordDTO dto) {
-        User user = getUserById(userId);
+    public void changePassword(final long userId, final UserChangePasswordDTO dto) {
+        final User user = getUserById(userId);
         if (!encoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is invalid");
         }
@@ -176,26 +177,26 @@ public class UserService extends AbstractService {
             throw new BadRequestException("Confirm password does not match");
         }
 
-        String newPassword = encoder.encode(dto.getNewPassword());
+        final String newPassword = encoder.encode(dto.getNewPassword());
         user.setPassword(newPassword);
 
         userRepository.save(user);
     }
 
-    public boolean containsIgnoreCase(String str, String subStr) {
+    public boolean containsIgnoreCase(final String str, final String subStr) {
         return str.toLowerCase().contains(subStr.toLowerCase());
     }
 
-    public void deleteUserById(long userId, UserPasswordDTO dto) {
-        User user = getUserById(userId);
+    public void deleteUserById(final long userId, final UserPasswordDTO dto) {
+        final User user = getUserById(userId);
         if (encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new BadRequestException("Wrong credentials");
         }
         userRepository.delete(user);
     }
 
-    public boolean deactivateUser(long userId, UserPasswordDTO dto) {
-        User user = getUserById(userId);
+    public boolean deactivateUser(final long userId, final UserPasswordDTO dto) {
+        final User user = getUserById(userId);
         if (encoder.matches(dto.getPassword(), user.getPassword())) {
             user.setDeactivated(true);
             userRepository.save(user);
@@ -204,12 +205,12 @@ public class UserService extends AbstractService {
         return false;
     }
 
-    public void changeInfo(long userId, UserChangeInfoDTO dto) {
-        User user = getUserById(userId);
+    public void changeInfo(final long userId, final UserChangeInfoDTO dto) {
+        final User user = getUserById(userId);
         // Update the user's information
         if (dto.getUsername() != null && !dto.getUsername().isBlank()) {
             // Check if the new username is already taken by another user
-            String newUsername = dto.getUsername();
+            final String newUsername = dto.getUsername();
             if (userRepository.existsByName(dto.getUsername())) {
                 throw new UserAlreadyExistsException("Username is already taken.");
             }
@@ -226,62 +227,62 @@ public class UserService extends AbstractService {
     }
 
     @SneakyThrows
-    public UserBasicInfoDTO updateProfilePicture(long userId, MultipartFile file) {
-        String ext = FilenameUtils.getExtension(file.getOriginalFilename());
-        String name = UUID.randomUUID().toString() + "." + ext;
-        File dir = new File("uploads_user_profile_picture");
+    public UserBasicInfoDTO updateProfilePicture(final long userId, final MultipartFile file) {
+        final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+        final String name = UUID.randomUUID().toString() + "." + ext;
+        final File dir = new File("uploads_user_profile_picture");
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        File f = new File(dir, name);
+        final File f = new File(dir, name);
         Files.copy(file.getInputStream(), f.toPath());
-        String url = dir.getName() + File.separator + f.getName();
-        User user = getUserById(userId);
+        final String url = dir.getName() + File.separator + f.getName();
+        final User user = getUserById(userId);
         user.setProfilePictureUrl(url);
         userRepository.save(user);
         return mapper.map(user, UserBasicInfoDTO.class);
     }
 
-    public File download(String fileName) {
-        File dir = new File("uploads_user_profile_picture");
-        File f = new File(dir, fileName);
+    public File download(final String fileName) {
+        final File dir = new File("uploads_user_profile_picture");
+        final File f = new File(dir, fileName);
         if (f.exists()) {
             return f;
         }
         throw new NotFoundException("File not found");
     }
 
-    public void forgotPassword(UserEmailDTO dto) {
-        User user = getUserByEmail(dto.getEmail());
-        String identifier = UUID.randomUUID().toString();
+    public void forgotPassword(final UserEmailDTO dto) {
+        final User user = getUserByEmail(dto.getEmail());
+        final String identifier = UUID.randomUUID().toString();
         user.setResetIdentifier(identifier);
         user.setResetIdentifierExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
         // Send email to user with reset link
-        String subject = "Email verification";
-        String resetLink = "https://localhost:8080/password/reset?id=" + identifier;
-        String text = "Click the link below to reset your password: \n" + resetLink;
+        final String subject = "Email verification";
+        final String resetLink = "https://localhost:8080/password/reset?id=" + identifier;
+        final String text = "Click the link below to reset your password: \n" + resetLink;
         sendEmail(user.getEmail(), subject, text);
     }
 
-    public void resetPassword(String identifier) {
-        User user = userRepository.findByResetIdentifier(identifier)
+    public void resetPassword(final String identifier) {
+        final User user = userRepository.findByResetIdentifier(identifier)
                 .orElseThrow(() -> new NotFoundException("Invalid identifier"));
         if (user.getResetIdentifierExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Reset token has expired");
         }
-        String generatePassword = generateRandomPassword();
+        final String generatePassword = generateRandomPassword();
         user.setPassword(encoder.encode(generatePassword));
         user.setResetIdentifier(null);
         user.setResetIdentifierExpiry(null);
         userRepository.save(user);
-        String subject = "New password";
-        String text = "This is your new password: \n" + generatePassword;
+        final String subject = "New password";
+        final String text = "This is your new password: \n" + generatePassword;
         sendEmail(user.getEmail(), subject, text);
     }
 
     private void sendEmail(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
+        final SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject(subject);
         message.setText(text);
@@ -289,26 +290,26 @@ public class UserService extends AbstractService {
     }
 
     public String generateRandomPassword() {
-        int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
-        String allCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&?";
+        final int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
+        final String allCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&?";
         return RandomStringUtils.random(passwordLength, allCharacters);
     }
 
     public void sendVerificationEmail(String email) {
-        User user = getUserByEmail(email);
-        String verificationCode = generateVerificationCode();
+        final User user = getUserByEmail(email);
+        final String verificationCode = generateVerificationCode();
         user.setVerificationCode(verificationCode);
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
         // Send verification email to user
-        String subject = "Email verification";
-        String verificationLink = "https://localhost:8080/users/email?verification-token=" + verificationCode;
-        String text = "Click the link below to verify your email address: \n" + verificationLink;
+        final String subject = "Email verification";
+        final String verificationLink = "https://localhost:8080/users/email?verification-token=" + verificationCode;
+        final String text = "Click the link below to verify your email address: \n" + verificationLink;
         sendEmail(user.getEmail(), subject, text);
     }
 
     public void verifyEmail(String verificationToken) {
-        User user = userRepository.findByVerificationCode(verificationToken)
+        final User user = userRepository.findByVerificationCode(verificationToken)
                 .orElseThrow(() -> new NotFoundException("Invalid verification token"));
         if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Verification code has expired");
@@ -319,16 +320,16 @@ public class UserService extends AbstractService {
         userRepository.save(user);
     }
 
-    public Slice<UserBasicInfoDTO> getFollowers(long id, Pageable pageable) {
-        User user = userRepository.findById(id)
+    public Slice<UserBasicInfoDTO> getFollowers(final long id, final Pageable pageable) {
+        final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
         return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
 
-    private UserBasicInfoDTO mapToUserBasicInfoDTO(User user) {
-        UserBasicInfoDTO dto = mapper.map(user, UserBasicInfoDTO.class);
+    private UserBasicInfoDTO mapToUserBasicInfoDTO(final User user) {
+        final UserBasicInfoDTO dto = mapper.map(user, UserBasicInfoDTO.class);
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setName(user.getName());
@@ -336,8 +337,8 @@ public class UserService extends AbstractService {
         return dto;
     }
 
-    public Slice<UserBasicInfoDTO> getFollowing(long id, Pageable pageable) {
-        User user = userRepository.findById(id)
+    public Slice<UserBasicInfoDTO> getFollowing(final long id, final Pageable pageable) {
+        final User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
         return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
@@ -345,12 +346,12 @@ public class UserService extends AbstractService {
     }
 
     @Transactional
-    public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(long userId) {
-        User user = userRepository.findById(userId)
+    public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(final long userId) {
+        final User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        int numFollowers = user.getFollowers().size();
-        int numFollowing = user.getFollowing().size();
-        int numPosts = user.getPosts().size();
+        final int numFollowers = user.getFollowers().size();
+        final int numFollowing = user.getFollowing().size();
+        final int numPosts = user.getPosts().size();
 
         return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(),
                 user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts);

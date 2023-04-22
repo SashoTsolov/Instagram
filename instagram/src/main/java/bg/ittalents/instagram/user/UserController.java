@@ -4,6 +4,7 @@ import bg.ittalents.instagram.comment.DTOs.PageRequestDTO;
 import bg.ittalents.instagram.exception.UnauthorizedException;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -28,7 +29,10 @@ public class UserController extends AbstractController {
 
     private final UserService userService;
 
-    public UserController(UserService userService) {
+    public UserController(HttpServletRequest request,
+                          HttpSession session,
+                          UserService userService) {
+        super(request, session);
         this.userService = userService;
     }
 
@@ -38,7 +42,7 @@ public class UserController extends AbstractController {
             @RequestParam("email")
             @NotBlank(message = "Email is required")
             @Email(message = "Invalid email format")
-            String email) {
+            final String email) {
         userService.sendVerificationEmail(email);
     }
 
@@ -46,7 +50,7 @@ public class UserController extends AbstractController {
     public ResponseEntity<String> verifyEmail(
             @RequestParam("verification-token")
             @NotBlank(message = "Provide verification token!")
-            String verificationToken) {
+            final String verificationToken) {
         userService.verifyEmail(verificationToken);
         return ResponseEntity.ok("Email verification successful");
     }
@@ -57,8 +61,8 @@ public class UserController extends AbstractController {
     public UserWithoutPassAndEmailDTO getUserById(
             @PathVariable
             @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id, HttpSession session) {
-        getLoggedId(session);
+            final long id) {
+        getLoggedId();
         return userService.getById(id);
     }
 
@@ -68,11 +72,11 @@ public class UserController extends AbstractController {
     public ResponseEntity<Slice<UserBasicInfoDTO>> getFollowers(
             @PathVariable
             @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
-        getLoggedId(session);
-        Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowers(
+            final long id,
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
+
+        getLoggedId();
+        final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowers(
                 id,
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
 
@@ -84,11 +88,10 @@ public class UserController extends AbstractController {
     public ResponseEntity<Slice<UserBasicInfoDTO>> getFollowing(
             @PathVariable
             @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long id,
-            @ModelAttribute PageRequestDTO pageRequestDTO,
-            HttpSession session) {
-        getLoggedId(session);
-        Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowing(
+            final long id,
+            @ModelAttribute final PageRequestDTO pageRequestDTO) {
+        getLoggedId();
+        final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowing(
                 id, PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(userBasicInfoDTOsList);
     }
@@ -97,14 +100,14 @@ public class UserController extends AbstractController {
     public List<UserBasicInfoDTO> searchUsersByUsername(
             @RequestParam
             @NotBlank(message = "Provide search string!")
-            String username, HttpSession session) {
-        getLoggedId(session);
+            final String username) {
+        getLoggedId();
         return userService.searchUsersByUsername(username);
     }
 
     // POST localhost:8080/users
     @PostMapping
-    public ResponseEntity<String> createUser(@RequestBody @Valid RegisterDTO dto, HttpSession session) {
+    public ResponseEntity<String> createUser(@RequestBody @Valid final RegisterDTO dto, final HttpSession session) {
         if (session.getAttribute("LOGGED_ID") != null) {
             throw new UnauthorizedException("You can't register while logged into an account");
         }
@@ -114,19 +117,20 @@ public class UserController extends AbstractController {
 
     // POST localhost:8080/users/login
     @PostMapping("/login")
-    public UserWithoutPassAndEmailDTO login(@RequestBody @Valid UserLoginDTO dto, HttpSession session) {
+    public UserWithoutPassAndEmailDTO login(@RequestBody @Valid final UserLoginDTO dto, final HttpSession session) {
         //Please keep in mind that the login method does the mapping.
         if (session.getAttribute("LOGGED_ID") != null) {
             throw new UnauthorizedException("You're already logged into an account");
         }
-        UserWithoutPassAndEmailDTO respDto = userService.login(dto);
+        final UserWithoutPassAndEmailDTO respDto = userService.login(dto);
         session.setAttribute("LOGGED_ID", respDto.getId());
+        session.setAttribute("IP", request.getRemoteAddr());
         return respDto;
     }
 
     // POST localhost:8080/users/logout
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpSession session) {
+    public ResponseEntity<String> logout(final HttpSession session) {
         session.invalidate();
         return ResponseEntity.ok("Logout successful");
     }
@@ -134,7 +138,7 @@ public class UserController extends AbstractController {
 
     //PUT localhost:8080/users/password/forgot
     @PutMapping("/password/forgot")
-    public ResponseEntity<String> forgotPassword(@RequestBody @Valid UserEmailDTO dto) {
+    public ResponseEntity<String> forgotPassword(@RequestBody @Valid final UserEmailDTO dto) {
         userService.forgotPassword(dto);
         return ResponseEntity.ok("A password reset link has been sent to your email");
     }
@@ -143,7 +147,7 @@ public class UserController extends AbstractController {
     public ResponseEntity<String> resetPassword(
             @RequestParam("id")
             @NotBlank(message = "Provide identifier!")
-            String identifier) {
+            final String identifier) {
         userService.resetPassword(identifier);
         return ResponseEntity.ok("Your new password has been sent to your email");
     }
@@ -153,8 +157,8 @@ public class UserController extends AbstractController {
     public ResponseEntity<Void> blockUser(
             @PathVariable("id")
             @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long blockedId, HttpSession session) {
-        long blockingUserId = getLoggedId(session);
+            final long blockedId) {
+        final long blockingUserId = getLoggedId();
         userService.block(blockingUserId, blockedId);
         return ResponseEntity.ok().build();
     }
@@ -164,9 +168,8 @@ public class UserController extends AbstractController {
     public ResponseEntity<Void> followUser(
             @PathVariable("id")
             @Min(value = 1, message = "ID must be greater than or equal to 1")
-            long followedId,
-            HttpSession session) {
-        long followerId = getLoggedId(session);
+            final long followedId) {
+        final long followerId = getLoggedId();
         userService.follow(followerId, followedId);
         return ResponseEntity.ok().build();
     }
@@ -174,9 +177,8 @@ public class UserController extends AbstractController {
     //     PUT localhost:8080/users/picture
     @PutMapping("/picture")
     public UserBasicInfoDTO uploadProfilePicture(
-            @RequestParam MultipartFile file,
-            HttpSession session) {
-        long userId = getLoggedId(session);
+            @RequestParam final MultipartFile file) {
+        final long userId = getLoggedId();
         return userService.updateProfilePicture(userId, file);
     }
 
@@ -185,10 +187,10 @@ public class UserController extends AbstractController {
     public ResponseEntity<Void> download(
             @PathVariable
             @NotBlank(message = "Provide file name!")
-            String fileName,
-            HttpServletResponse response, HttpSession session) {
-        getLoggedId(session);
-        File file = userService.download(fileName);
+            final String fileName,
+            final HttpServletResponse response) {
+        getLoggedId();
+        final File file = userService.download(fileName);
         response.setContentType("image/jpeg");
         Files.copy(file.toPath(), response.getOutputStream());
         return ResponseEntity.ok().build();
@@ -196,25 +198,25 @@ public class UserController extends AbstractController {
 
     // PUT localhost:8080/users/password
     @PutMapping("/password")
-    public ResponseEntity<String> updatePassword(@RequestBody @Valid UserChangePasswordDTO dto, HttpSession session) {
-        long userId = getLoggedId(session);
+    public ResponseEntity<String> updatePassword(@RequestBody @Valid final UserChangePasswordDTO dto) {
+        final long userId = getLoggedId();
         userService.changePassword(userId, dto);
         return ResponseEntity.ok("Password changed");
     }
 
     // PUT localhost:8080/users/info
     @PutMapping("/info")
-    public ResponseEntity<String> updateUserInfo(@RequestBody @Valid UserChangeInfoDTO dto, HttpSession session) {
-        long userId = getLoggedId(session);
+    public ResponseEntity<String> updateUserInfo(@RequestBody @Valid final UserChangeInfoDTO dto) {
+        final long userId = getLoggedId();
         userService.changeInfo(userId, dto);
         return ResponseEntity.ok("Info changed!");
     }
 
     // PUT localhost:8080/users/deactivate
     @PutMapping("/deactivate")
-    public ResponseEntity<String> deactivateUser(@RequestBody @Valid UserPasswordDTO dto, HttpSession session) {
-        long userId = getLoggedId(session);
-        boolean success = userService.deactivateUser(userId, dto);
+    public ResponseEntity<String> deactivateUser(@RequestBody @Valid final UserPasswordDTO dto) {
+        final long userId = getLoggedId();
+        final boolean success = userService.deactivateUser(userId, dto);
         if (success) {
             session.invalidate();
             return ResponseEntity.ok("User deactivated successfully");
@@ -225,8 +227,8 @@ public class UserController extends AbstractController {
 
     // DELETE localhost:8080/users
     @DeleteMapping
-    public ResponseEntity<String> deleteUser(@RequestBody @Valid UserPasswordDTO dto, HttpSession session) {
-        long userId = getLoggedId(session);
+    public ResponseEntity<String> deleteUser(@RequestBody @Valid final UserPasswordDTO dto) {
+        final long userId = getLoggedId();
         userService.deleteUserById(userId, dto);
         session.invalidate();
         return ResponseEntity.ok("Account successfully deleted");
