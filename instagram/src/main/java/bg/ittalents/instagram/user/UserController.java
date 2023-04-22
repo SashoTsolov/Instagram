@@ -150,12 +150,12 @@ public class UserController extends AbstractController {
 
     // POST localhost:8080/users/2/block
     @PostMapping("/{id}/block")
-    public ResponseEntity<Void> blockUser(
+    public ResponseEntity<String> blockUser(
             @PathVariable("id")
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long blockedId) {
         final long blockingUserId = getLoggedId();
         userService.block(blockingUserId, blockedId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("User blocked");
     }
 
     //POST localhost:8080/users/2/follow

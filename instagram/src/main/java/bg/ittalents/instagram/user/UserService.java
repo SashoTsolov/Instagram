@@ -71,7 +71,7 @@ public class UserService extends AbstractService {
         final String verificationLink = "https://localhost:8080/users/verify?verification-token="
                 + user.getVerificationCode();
         final String text = "Click the link below to verify your account: \n" + verificationLink;
-        sendEmail(user.getEmail(), subject, text);
+        new Thread(() -> sendEmail(user.getEmail(), subject, text)).start();
     }
 
     public UserWithoutPassAndEmailDTO login(final UserLoginDTO dto) {
@@ -264,7 +264,7 @@ public class UserService extends AbstractService {
         final String subject = "Forgot password";
         final String resetLink = "https://localhost:8080/password/reset?id=" + identifier;
         final String text = "Click the link below to reset your password: \n" + resetLink;
-        sendEmail(user.getEmail(), subject, text);
+        new Thread(() -> sendEmail(user.getEmail(), subject, text)).start();
     }
 
     public void resetPassword(final String identifier) {
@@ -280,17 +280,15 @@ public class UserService extends AbstractService {
         userRepository.save(user);
         final String subject = "New password";
         final String text = "This is your new password: \n" + generatePassword;
-        sendEmail(user.getEmail(), subject, text);
+        new Thread(() -> sendEmail(user.getEmail(), subject, text)).start();
     }
-
+    
     public void sendEmail(final String to, final String subject, final String text) {
-        new Thread(() -> {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
-            javaMailSender.send(message);
-        }).start();
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(text);
+        javaMailSender.send(message);
     }
 
     public String generateRandomPassword() {
@@ -309,7 +307,7 @@ public class UserService extends AbstractService {
         final String subject = "Email verification";
         final String verificationLink = "https://localhost:8080/users/email?verification-token=" + verificationCode;
         final String text = "Click the link below to verify your email address: \n" + verificationLink;
-        sendEmail(user.getEmail(), subject, text);
+        new Thread(() -> sendEmail(user.getEmail(), subject, text)).start();
     }
 
     public void verifyEmail(final String verificationToken) {
