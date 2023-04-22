@@ -7,13 +7,19 @@ import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import bg.ittalents.instagram.follower.Follow;
 import bg.ittalents.instagram.follower.FollowKey;
 import bg.ittalents.instagram.follower.FollowRepository;
+import bg.ittalents.instagram.media.Media;
+import bg.ittalents.instagram.post.Post;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.mail.SimpleMailMessage;
@@ -23,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -34,12 +41,14 @@ public class UserService extends AbstractService {
     private final BCryptPasswordEncoder encoder;
     private final FollowRepository followRepository;
 
-    public UserService(UserRepository userRepository,
-                       JavaMailSender javaMailSender,
-                       ModelMapper mapper,
-                       BCryptPasswordEncoder encoder,
-                       FollowRepository followRepository) {
-        super(userRepository, javaMailSender, mapper);
+    public UserService(final UserRepository userRepository,
+                       final JavaMailSender javaMailSender,
+                       final ModelMapper mapper,
+                       final AmazonS3 s3Client,
+                       final @Value("${aws.s3.bucket}") String bucketName,
+                       final BCryptPasswordEncoder encoder,
+                       final FollowRepository followRepository) {
+        super(userRepository, javaMailSender, mapper, s3Client, bucketName);
         this.encoder = encoder;
         this.followRepository = followRepository;
     }
@@ -222,40 +231,22 @@ public class UserService extends AbstractService {
         if (!Arrays.asList("jpg", "jpeg", "png").contains(ext)) {
             throw new BadRequestException("File type not supported. Only JPG, JPEG and PNG formats are allowed.");
         }
-        final String name = UUID.randomUUID().toString() + "." + ext;
-        final File dir = new File("uploads_user_profile_picture");
-        if (!dir.exists()) {
-            dir.mkdirs();
+
+        final String newUrl = uploadMedia(file, ext);
+        final User user = getUserById(userId);
+        final String oldUrl = user.getProfilePictureUrl();
+        user.setProfilePictureUrl(newUrl);
+        userRepository.save(user);
+
+        // Delete old file from S3 if it exists
+        if (oldUrl != null) {
+            final String oldFileName = oldUrl.substring(oldUrl.lastIndexOf('/') + 1);
+            s3Client.deleteObject(bucketName, oldFileName);
         }
 
-        File oldFile = null;
-        final User user = getUserById(userId);
-        if (user.getProfilePictureUrl() != null) {
-            oldFile = new File(user.getProfilePictureUrl());
-            if (oldFile.exists()) {
-                oldFile.delete();
-            }
-        }
-        final File newFile = new File(dir, name);
-        Files.copy(file.getInputStream(), newFile.toPath());
-        final String url = dir.getName() + File.separator + newFile.getName();
-        user.setProfilePictureUrl(url);
-        userRepository.save(user);
-        if (oldFile != null) {
-            oldFile.delete();
-        }
         return mapper.map(user, UserBasicInfoDTO.class);
     }
 
-
-    public File download(final String fileName) {
-        final File dir = new File("uploads_user_profile_picture");
-        final File f = new File(dir, fileName);
-        if (f.exists()) {
-            return f;
-        }
-        throw new NotFoundException("File not found");
-    }
 
     public void forgotPassword(final UserEmailDTO dto) {
         final User user = getUserByEmail(dto.getEmail());
@@ -338,8 +329,7 @@ public class UserService extends AbstractService {
     }
 
     public Slice<UserBasicInfoDTO> getFollowers(final long id, final Pageable pageable) {
-        final User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+        final User user = getUserById(id);
         return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
@@ -354,8 +344,7 @@ public class UserService extends AbstractService {
     }
 
     public Slice<UserBasicInfoDTO> getFollowing(final long id, final Pageable pageable) {
-        final User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+        final User user = getUserById(id);
         return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
@@ -388,5 +377,18 @@ public class UserService extends AbstractService {
             throw new NotFoundException("No users found");
         }
         return result;
+    }
+
+    public void deleteProfilePicture(final long userId) {
+        final User user = getUserById(userId);
+        final String profilePictureUrl = user.getProfilePictureUrl();
+        if (profilePictureUrl != null) {
+            final String objectKey = profilePictureUrl.substring(profilePictureUrl.lastIndexOf("/") + 1);
+            user.setProfilePictureUrl(null);
+            userRepository.save(user);
+            s3Client.deleteObject(bucketName, objectKey);
+        } else {
+            throw new NotFoundException("No profile picture to delete!");
+        }
     }
 }

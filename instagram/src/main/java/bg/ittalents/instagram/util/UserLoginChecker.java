@@ -2,7 +2,9 @@ package bg.ittalents.instagram.util;
 
 import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.user.UserRepository;
+import com.amazonaws.services.s3.AmazonS3;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -16,8 +18,12 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class UserLoginChecker extends AbstractService {
 
-    public UserLoginChecker(UserRepository userRepository, JavaMailSender javaMailSender, ModelMapper mapper) {
-        super(userRepository, javaMailSender, mapper);
+    public UserLoginChecker(final UserRepository userRepository,
+                            final JavaMailSender javaMailSender,
+                            final ModelMapper mapper,
+                            final AmazonS3 s3Client,
+                            final @Value("${aws.s3.bucket}") String bucketName) {
+        super(userRepository, javaMailSender, mapper, s3Client, bucketName);
     }
 
     @Scheduled(cron = "0 0 0 * * ?")

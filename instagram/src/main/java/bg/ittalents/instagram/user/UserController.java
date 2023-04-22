@@ -4,6 +4,7 @@ import bg.ittalents.instagram.comment.DTOs.PageRequestDTO;
 import bg.ittalents.instagram.exception.UnauthorizedException;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
+import com.amazonaws.util.IOUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -14,13 +15,11 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.SneakyThrows;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.nio.file.Files;
+import java.io.InputStream;
 import java.util.List;
 
 @RestController
@@ -38,11 +37,12 @@ public class UserController extends AbstractController {
 
     // GET localhost:8080/users/email?verification-token=QWERTY123456
     @PutMapping("/send/verification")
-    public void sendVerificationEmail(
+    public ResponseEntity<Void> sendVerificationEmail(
             @RequestParam("email")
             @NotBlank(message = "Email is required")
             @Email(message = "Invalid email format") final String email) {
         userService.sendVerificationEmail(email);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/verify/email")
@@ -56,11 +56,11 @@ public class UserController extends AbstractController {
 
     // GET localhost:8080/users/2
     @GetMapping("/{id}")
-    public UserWithoutPassAndEmailDTO getUserById(
+    public ResponseEntity<UserWithoutPassAndEmailDTO> getUserById(
             @PathVariable
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
         getLoggedId();
-        return userService.getById(id);
+        return ResponseEntity.ok(userService.getById(id));
     }
 
 
@@ -92,7 +92,6 @@ public class UserController extends AbstractController {
     }
 
     @GetMapping("/search")
-
     public ResponseEntity<List<UserBasicInfoDTO>> searchUsersByUsername(
             @RequestParam
             @NotBlank(message = "Provide search string!") final String username) {
@@ -113,7 +112,8 @@ public class UserController extends AbstractController {
 
     // POST localhost:8080/users/login
     @PostMapping("/login")
-    public UserWithoutPassAndEmailDTO login(@RequestBody @Valid final UserLoginDTO dto, final HttpSession session) {
+    public ResponseEntity<UserWithoutPassAndEmailDTO> login(@RequestBody @Valid final UserLoginDTO dto,
+                                                            final HttpSession session) {
         //Please keep in mind that the login method does the mapping.
         if (session.getAttribute("LOGGED_ID") != null) {
             throw new UnauthorizedException("You're already logged into an account");
@@ -121,7 +121,7 @@ public class UserController extends AbstractController {
         final UserWithoutPassAndEmailDTO respDto = userService.login(dto);
         session.setAttribute("LOGGED_ID", respDto.getId());
         session.setAttribute("IP", request.getRemoteAddr());
-        return respDto;
+        return ResponseEntity.ok(respDto);
     }
 
     // POST localhost:8080/users/logout
@@ -160,7 +160,6 @@ public class UserController extends AbstractController {
 
     //POST localhost:8080/users/2/follow
     @PostMapping("/{id}/follow")
-
     public ResponseEntity<String> followUser(
             @PathVariable("id")
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long followedId) {
@@ -171,22 +170,29 @@ public class UserController extends AbstractController {
 
     //     PUT localhost:8080/users/picture
     @PutMapping("/picture")
-    public UserBasicInfoDTO uploadProfilePicture(
+    public ResponseEntity<UserBasicInfoDTO> uploadProfilePicture(
             @RequestParam final MultipartFile file) {
         final long userId = getLoggedId();
-        return userService.updateProfilePicture(userId, file);
+        final UserBasicInfoDTO userBasicInfoDTO = userService.updateProfilePicture(userId, file);
+        return ResponseEntity.ok(userBasicInfoDTO);
+    }
+
+    //     PUT localhost:8080/users/picture
+    @DeleteMapping("/picture")
+    public ResponseEntity<String> deleteProfilePicture() {
+        userService.deleteProfilePicture(getLoggedId());
+        return ResponseEntity.ok("Profile picture deleted successfully");
     }
 
     @GetMapping("/picture/{fileName}")
     @SneakyThrows
-    public ResponseEntity<Void> download(
-            @PathVariable
-            @NotBlank(message = "Provide file name!") final String fileName,
+    public ResponseEntity<Void> downloadProfilePicture(
+            @PathVariable @NotBlank(message = "Provide file name!") final String fileName,
             final HttpServletResponse response) {
         getLoggedId();
-        final File file = userService.download(fileName);
+        final InputStream inputStream = userService.downloadMedia(fileName);
         response.setContentType("image/jpeg");
-        Files.copy(file.toPath(), response.getOutputStream());
+        IOUtils.copy(inputStream, response.getOutputStream());
         return ResponseEntity.ok().build();
     }
 

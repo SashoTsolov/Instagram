@@ -25,9 +25,9 @@ public class UserWithoutPassAndEmailDTO {
     private int numFollowing;
     private int numPosts;
 
-    public UserWithoutPassAndEmailDTO(final long id, final  String name, final  String username,
-                                      final String profilePictureUrl, final  int numFollowers,
-                                      final int numFollowing, final  int numPosts, final  String bio) {
+    public UserWithoutPassAndEmailDTO(final long id, final String name, final String username,
+                                      final String profilePictureUrl, final int numFollowers,
+                                      final int numFollowing, final int numPosts, final String bio) {
         this.id = id;
         this.name = name;
         this.username = username;
