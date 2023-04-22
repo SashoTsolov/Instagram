@@ -1,7 +1,7 @@
 package bg.ittalents.instagram.media;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
-import bg.ittalents.instagram.exceptions.NotFoundException;
+import bg.ittalents.instagram.exception.BadRequestException;
+import bg.ittalents.instagram.exception.NotFoundException;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.post.Post;

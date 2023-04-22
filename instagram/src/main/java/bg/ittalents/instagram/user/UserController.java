@@ -1,6 +1,6 @@
 package bg.ittalents.instagram.user;
 
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractController;
 import jakarta.servlet.http.HttpServletResponse;
@@ -70,8 +70,10 @@ public class UserController extends AbstractController {
     }
 
     @GetMapping("/search")
-    public List<UserBasicInfoDTO> searchUsersByUsername(@RequestParam String username) {
-        return userService.searchUsersByUsername(username);
+    public ResponseEntity<List<UserBasicInfoDTO>> searchUsersByUsername(@RequestParam String username, HttpSession session) {
+        long userId = getLoggedId(session);
+        List<UserBasicInfoDTO> userBasicInfoDTOList = userService.getSearchResult(username, userId);
+        return ResponseEntity.ok(userBasicInfoDTOList);
     }
 
     // POST localhost:8080/users
@@ -127,10 +129,10 @@ public class UserController extends AbstractController {
 
     //POST localhost:8080/users/2/follow
     @PostMapping("/{id}/follow")
-    public ResponseEntity<Void> followUser(@PathVariable("id") long followedId, HttpSession session) {
+    public ResponseEntity<String> followUser(@PathVariable("id") long followedId, HttpSession session) {
         long followerId = getLoggedId(session);
-        userService.follow(followerId, followedId);
-        return ResponseEntity.ok().build();
+        String response = userService.follow(followerId, followedId);
+        return ResponseEntity.ok(response);
     }
 
     //     PUT localhost:8080/users/picture

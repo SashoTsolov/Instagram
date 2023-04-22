@@ -2,8 +2,8 @@ package bg.ittalents.instagram.comment;
 
 import bg.ittalents.instagram.comment.DTOs.CommentContentDTO;
 import bg.ittalents.instagram.comment.DTOs.CommentDTO;
-import bg.ittalents.instagram.exceptions.NotFoundException;
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
+import bg.ittalents.instagram.exception.NotFoundException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
 import bg.ittalents.instagram.post.Post;
 import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.User;
