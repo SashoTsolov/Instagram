@@ -20,15 +20,15 @@ public class UserLoginChecker extends AbstractService {
         super(userRepository, javaMailSender, mapper);
     }
 
-    //@Scheduled(cron = "0 0 0 * * ?")
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 0 0 * * ?")
+//    @Scheduled(cron = "0 * * * * *")
     public void checkUserLogins() {
         final List<User> users = userRepository.findAll();
-        //final Timestamp threeMonthsAgo = new Timestamp(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(90));
-        final Timestamp oneMinuteAgo = new Timestamp(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(1));
+        final Timestamp threeMonthsAgo = new Timestamp(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(90));
+//        final Timestamp oneMinuteAgo = new Timestamp(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(1));
         for (User user : users) {
-            final Timestamp lastLoginTime = user.getLastLoginTime();
-            if (lastLoginTime != null && lastLoginTime.before(oneMinuteAgo)) {
+            final Timestamp lastLoginTime = user.getLastLogoutTime();
+            if (lastLoginTime != null && lastLoginTime.before(threeMonthsAgo)) {
                 new Thread(() -> sendEmail(user.getEmail())).start();
             }
         }

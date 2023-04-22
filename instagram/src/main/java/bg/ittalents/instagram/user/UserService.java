@@ -356,7 +356,7 @@ public class UserService extends AbstractService {
 
     public void logout(final long userId) {
         final User user = getUserById(userId);
-        user.setLastLoginTime(Timestamp.valueOf(LocalDateTime.now()));
+        user.setLastLogoutTime(Timestamp.valueOf(LocalDateTime.now()));
         userRepository.save(user);
     }
 }

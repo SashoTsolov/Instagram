@@ -51,7 +51,8 @@ public class MediaService {
         for (MultipartFile currentFile : files) {
             final String ext = FilenameUtils.getExtension(currentFile.getOriginalFilename());
             if (!Arrays.asList("jpg", "jpeg", "png", "mp4").contains(ext)) {
-                throw new BadRequestException("File type not supported. Only JPG, JPEG, PNG, and MP4 formats are allowed.");
+                throw new BadRequestException("File type not supported. " +
+                        "Only JPG, JPEG, PNG, and MP4 formats are allowed.");
             }
             final String name = UUID.randomUUID().toString() + "." + ext;
             final File dir = new File("uploads_user_posts_media");
