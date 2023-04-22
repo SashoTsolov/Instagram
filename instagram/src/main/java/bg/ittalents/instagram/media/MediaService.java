@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,55 +27,57 @@ public class MediaService {
     private final PostRepository postRepository;
     private final MediaRepository mediaRepository;
     private final PostService postService;
-    private final ModelMapper mediaMapper;
+    private final ModelMapper mapper;
 
     public MediaService(PostRepository postRepository,
-                        MediaRepository mediaRepository, PostService postService, ModelMapper mediaMapper) {
+                        MediaRepository mediaRepository, PostService postService, ModelMapper mapper) {
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
         this.postService = postService;
-        this.mediaMapper = mediaMapper;
+        this.mapper = mapper;
     }
 
     @SneakyThrows
     @Transactional
-    public PostWithoutCommentsDTO upload(List<MultipartFile> files, long postId) {
+    public PostWithoutCommentsDTO upload(final List<MultipartFile> files, final long postId) {
 
-        Post post = postRepository.findByIdAndIsCreatedIsFalse(postId)
-                .orElseThrow(() -> new NotFoundException("Post doesn't exist"));
+        final Post post = postRepository.findByIdAndIsCreatedIsFalse(postId)
+                .orElseThrow(() -> new BadRequestException("You can't add media to this post!"));
 
         if (post.getIsCreated()) {
             throw new BadRequestException("You cannot add media to an already created post!");
         }
-        List<Media> allMedia = new ArrayList<>();
-        for (MultipartFile file : files) {
-            final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+        final List<Media> allMedia = new ArrayList<>();
+        for (MultipartFile currentFile : files) {
+            final String ext = FilenameUtils.getExtension(currentFile.getOriginalFilename());
+            if (!Arrays.asList("jpg", "jpeg", "png", "mp4").contains(ext)) {
+                throw new BadRequestException("File type not supported. " +
+                        "Only JPG, JPEG, PNG, and MP4 formats are allowed.");
+            }
             final String name = UUID.randomUUID().toString() + "." + ext;
-            final File dir = new File("upload_user_posts_media");
+            final File dir = new File("uploads_user_posts_media");
             if (!dir.exists()) {
                 dir.mkdirs();
             }
-            File f = new File(dir, name);
-            Files.copy(file.getInputStream(), f.toPath());
-            String url = dir.getName() + File.separator + f.getName();
+            final File file = new File(dir, name);
+            Files.copy(currentFile.getInputStream(), file.toPath());
+            final String url = dir.getName() + File.separator + file.getName();
 
-            Media media = new Media();
+            final Media media = new Media();
             media.setMediaUrl(url);
             media.setPost(post);
             allMedia.add(media);
-            post.getMediaUrls().add(media);
         }
         mediaRepository.saveAll(allMedia);
-        postService.updatePostInfo(post);
-
         post.setIsCreated(true);
-        postRepository.save(post);
-        return mediaMapper.map(post, PostWithoutCommentsDTO.class);
+        postService.updatePostInfo(post);
+        return mapper.map(post, PostWithoutCommentsDTO.class);
     }
 
-    public File download(String fileName) {
-        File dir = new File("upload_user_posts_media");
-        File file = new File(dir, fileName);
+
+    public File download(final String fileName) {
+        final File dir = new File("uploads_user_posts_media");
+        final File file = new File(dir, fileName);
         if (file.exists()) {
             return file;
         }

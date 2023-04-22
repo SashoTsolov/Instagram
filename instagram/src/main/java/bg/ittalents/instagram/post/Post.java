@@ -1,6 +1,5 @@
 package bg.ittalents.instagram.post;
 
-import bg.ittalents.instagram.comment.Comment;
 import bg.ittalents.instagram.hashtag.Hashtag;
 import bg.ittalents.instagram.location.Location;
 import bg.ittalents.instagram.media.Media;
@@ -51,7 +50,7 @@ public class Post {
     @Column(name = "date_time_created", nullable = false)
     private LocalDateTime dateTimeCreated;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "posts_have_hashtags",
             joinColumns = @JoinColumn(name = "post_id"),
@@ -62,16 +61,13 @@ public class Post {
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Media> mediaUrls = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments;
-
-    @ManyToMany(mappedBy = "likedPosts")
+    @ManyToMany(mappedBy = "likedPosts", fetch = FetchType.LAZY)
     private List<User> likedBy;
 
-    @ManyToMany(mappedBy = "taggedPosts")
+    @ManyToMany(mappedBy = "taggedPosts", fetch = FetchType.LAZY)
     private List<User> taggedUsers;
 
-    @ManyToMany(mappedBy = "savedPosts")
+    @ManyToMany(mappedBy = "savedPosts", fetch = FetchType.LAZY)
     private List<User> savedBy;
 }
 

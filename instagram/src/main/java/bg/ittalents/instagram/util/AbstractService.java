@@ -1,38 +1,28 @@
 package bg.ittalents.instagram.util;
 
 import bg.ittalents.instagram.exception.NotFoundException;
-import bg.ittalents.instagram.follower.FollowRepository;
-import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.UserRepository;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import bg.ittalents.instagram.user.User;
+import org.springframework.mail.javamail.JavaMailSender;
 
 public abstract class AbstractService {
-    @Autowired
-    protected UserRepository userRepository;
-    @Autowired
-    protected PostRepository postRepository;
 
-    @Autowired
-    protected BCryptPasswordEncoder encoder;
+    protected final UserRepository userRepository;
+    protected final JavaMailSender javaMailSender;
+    protected final ModelMapper mapper;
 
-    @Autowired
-    protected ModelMapper mapper;
+    public AbstractService(UserRepository userRepository, JavaMailSender javaMailSender, ModelMapper mapper) {
+        this.userRepository = userRepository;
+        this.javaMailSender = javaMailSender;
+        this.mapper = mapper;
+    }
 
-    @Autowired
-    protected FollowRepository followRepository;
-
-    @Autowired
-    protected JavaMailSender javaMailSender;
-
-    protected User getUserById(long id){
+    protected User getUserById(final long id) {
         return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User was not found"));
     }
 
-    protected User getUserByEmail(String email){
+    protected User getUserByEmail(final String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new NotFoundException("User was not found"));
     }
 }

@@ -45,9 +45,9 @@ public class Comment {
     @Column(name = "date_time_created", nullable = false)
     private LocalDateTime dateTimeCreated;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> replies;
 
-    @ManyToMany(mappedBy = "likedComments")
+    @ManyToMany(mappedBy = "likedComments", fetch = FetchType.LAZY)
     private List<User> likedBy;
 }

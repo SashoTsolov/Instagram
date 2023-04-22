@@ -12,29 +12,32 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class RegisterDTO {
 
-        @NotBlank
-        @Email
-        @Size(max = 50)
-        private String email;
+    @NotBlank(message = "Email must not be blank")
+    @Email(message = "Invalid email format")
+    @Size(max = 50, message = "Email must have maximum size of {max} characters")
+    private String email;
 
-        @NotBlank
-        @Size(min = 2, max = 50)
-        @Pattern(regexp = "[A-Za-z ]+", message = "Name should contain only alphabets and spaces")
-        private String name;
+    @NotBlank(message = "Name must not be blank")
+    @Size(min = 2, max = 50, message = "Name must have minimum size of {min} and maximum size of {max} characters")
+    @Pattern(regexp = "[A-Za-z ]+", message = "Name should contain only alphabets and spaces")
+    private String name;
 
-        @NotBlank
-        @Size(min = 4, max = 20)
-        @Pattern(regexp = "^[a-zA-Z0-9._-]+$",
-                message = "Username should contain only alphanumeric characters, periods, underscores, and dashes")
-        private String username;
+    @NotBlank(message = "Username must not be blank")
+    @Size(min = 4, max = 20, message = "Username must have minimum size of {min} and maximum size of {max} characters")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]+$",
+            message = "Username should contain only alphanumeric characters, periods, underscores, and dashes")
+    private String username;
 
-        @NotBlank
-        @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
-                message = "Weak password")
-        private String password;
+    @NotBlank(message = "Password must not be blank")
+    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$",
+            message = "Password must contain at least 8 characters, including one uppercase letter, " +
+                    "one lowercase letter, one number and one special character")
+    private String password;
 
-        @NotBlank
-        private String confirmPassword;
+    @NotBlank(message = "Confirm password must not be blank")
+    private String confirmPassword;
 
-        private LocalDate dateOfBirth;
+    @NotNull(message = "Date of birth is required")
+    @Past(message = "Date of birth must be a date in the past")
+    private LocalDate dateOfBirth;
 }
