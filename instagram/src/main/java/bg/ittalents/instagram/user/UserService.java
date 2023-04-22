@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService extends AbstractService {
@@ -125,15 +124,14 @@ public class UserService extends AbstractService {
 
     private String generateVerificationCode() {
         final UUID uuid = UUID.randomUUID();
-        final String code = uuid.toString().substring(0, 12);
-        return code;
+        return uuid.toString().substring(0, 12);
     }
 
-    //TODO
     @Transactional
-    public void follow(final long followerId, final long followedId) {
+    public String follow(final long followerId, final long followedId) {
         final User follower = getUserById(followerId);
         final User followed = getUserById(followedId);
+
         if (follower == null || followed == null) {
             throw new NotFoundException("User not found");
         }
@@ -141,8 +139,14 @@ public class UserService extends AbstractService {
         if (followerId == followedId) {
             throw new BadRequestException("You can't follow yourself");
         }
+        if (follower.getBlocked().contains(followed) || follower.getBlockedBy().contains(followed)) {
+            throw new BadRequestException("Unable to follow user");
+        }
         if (follower.getFollowing().contains(followed)) {
             followRepository.deleteById(followKey);
+            userRepository.save(follower);
+            userRepository.save(followed);
+            return followed.getUsername() + " unfollowed";
         }
         // create and save the Follower entity
         final Follow followEntity = new Follow();
@@ -151,19 +155,7 @@ public class UserService extends AbstractService {
         followEntity.setFollowedUser(followed);
         followEntity.setDateTimeOfFollow(Timestamp.valueOf(LocalDateTime.now()));
         followRepository.save(followEntity);
-    }
-
-    //TODO -- make this into a query and filter by blocked/blockedBy/deactivated
-    public List<UserBasicInfoDTO> searchUsersByUsername(final String username) {
-        final List<User> users = userRepository.findAll();
-        final List<User> filteredUsers = users.stream()
-                .filter(user -> containsIgnoreCase(user.getUsername(), username))
-                .filter(user -> !user.isDeactivated())
-                .limit(55)
-                .toList();
-        System.out.println(filteredUsers.size());
-        return filteredUsers.stream()
-                .map(user -> mapper.map(user, UserBasicInfoDTO.class)).collect(Collectors.toList());
+        return followed.getUsername() + " followed";
     }
 
     public void changePassword(final long userId, final UserChangePasswordDTO dto) {
@@ -181,26 +173,22 @@ public class UserService extends AbstractService {
         userRepository.save(user);
     }
 
-    public boolean containsIgnoreCase(final String str, final String subStr) {
-        return str.toLowerCase().contains(subStr.toLowerCase());
-    }
-
     public void deleteUserById(final long userId, final UserPasswordDTO dto) {
         final User user = getUserById(userId);
-        if (encoder.matches(dto.getPassword(), user.getPassword())) {
+        if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new BadRequestException("Wrong credentials");
         }
         userRepository.delete(user);
     }
 
-    public boolean deactivateUser(final long userId, final UserPasswordDTO dto) {
+    public String deactivateUser(final long userId, final UserPasswordDTO dto) {
         final User user = getUserById(userId);
-        if (encoder.matches(dto.getPassword(), user.getPassword())) {
-            user.setDeactivated(true);
-            logout(userId);
-            return true;
+        if (!encoder.matches(dto.getPassword(), user.getPassword())) {
+            throw new BadRequestException("Wrong credentials");
         }
-        return false;
+        user.setDeactivated(true);
+        logout(userId);
+        return "Deactivation successful";
     }
 
     public void changeInfo(final long userId, final UserChangeInfoDTO dto) {
@@ -224,22 +212,38 @@ public class UserService extends AbstractService {
         userRepository.save(user);
     }
 
+    @Transactional
     @SneakyThrows
     public UserBasicInfoDTO updateProfilePicture(final long userId, final MultipartFile file) {
         final String ext = FilenameUtils.getExtension(file.getOriginalFilename());
+        if (!Arrays.asList("jpg", "jpeg", "png").contains(ext)) {
+            throw new BadRequestException("File type not supported. Only JPG, JPEG and PNG formats are allowed.");
+        }
         final String name = UUID.randomUUID().toString() + "." + ext;
         final File dir = new File("uploads_user_profile_picture");
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        final File f = new File(dir, name);
-        Files.copy(file.getInputStream(), f.toPath());
-        final String url = dir.getName() + File.separator + f.getName();
+
+        File oldFile = null;
         final User user = getUserById(userId);
+        if (user.getProfilePictureUrl() != null) {
+            oldFile = new File(user.getProfilePictureUrl());
+            if (oldFile.exists()) {
+                oldFile.delete();
+            }
+        }
+        final File newFile = new File(dir, name);
+        Files.copy(file.getInputStream(), newFile.toPath());
+        final String url = dir.getName() + File.separator + newFile.getName();
         user.setProfilePictureUrl(url);
         userRepository.save(user);
+        if (oldFile != null) {
+            oldFile.delete();
+        }
         return mapper.map(user, UserBasicInfoDTO.class);
     }
+
 
     public File download(final String fileName) {
         final File dir = new File("uploads_user_profile_picture");
@@ -257,7 +261,7 @@ public class UserService extends AbstractService {
         user.setResetIdentifierExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
         // Send email to user with reset link
-        final String subject = "Email verification";
+        final String subject = "Forgot password";
         final String resetLink = "https://localhost:8080/password/reset?id=" + identifier;
         final String text = "Click the link below to reset your password: \n" + resetLink;
         sendEmail(user.getEmail(), subject, text);
@@ -279,12 +283,14 @@ public class UserService extends AbstractService {
         sendEmail(user.getEmail(), subject, text);
     }
 
-    private void sendEmail(String to, String subject, String text) {
-        final SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        javaMailSender.send(message);
+    public void sendEmail(final String to, final String subject, final String text) {
+        new Thread(() -> {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            javaMailSender.send(message);
+        }).start();
     }
 
     public String generateRandomPassword() {
@@ -293,7 +299,7 @@ public class UserService extends AbstractService {
         return RandomStringUtils.random(passwordLength, allCharacters);
     }
 
-    public void sendVerificationEmail(String email) {
+    public void sendVerificationEmail(final String email) {
         final User user = getUserByEmail(email);
         final String verificationCode = generateVerificationCode();
         user.setVerificationCode(verificationCode);
@@ -306,7 +312,7 @@ public class UserService extends AbstractService {
         sendEmail(user.getEmail(), subject, text);
     }
 
-    public void verifyEmail(String verificationToken) {
+    public void verifyEmail(final String verificationToken) {
         final User user = userRepository.findByVerificationCode(verificationToken)
                 .orElseThrow(() -> new NotFoundException("Invalid verification token"));
         if (user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
@@ -336,10 +342,7 @@ public class UserService extends AbstractService {
     }
 
     public Slice<UserBasicInfoDTO> getFollowing(final long id, final Pageable pageable) {
-        final User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
-
-        return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
+        return userRepository.findAllFollowedOrderByDateOfFollowDesc(id, pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
 
@@ -356,7 +359,20 @@ public class UserService extends AbstractService {
 
     public void logout(final long userId) {
         final User user = getUserById(userId);
-        user.setLastLogoutTime(Timestamp.valueOf(LocalDateTime.now()));
+        user.setLastBeenOnline(Timestamp.valueOf(LocalDateTime.now()));
         userRepository.save(user);
+    }
+
+    public List<UserBasicInfoDTO> getSearchResult(final String username, final long userId) {
+        final List<User> list = userRepository.findAllUsersOrderById(username, userId);
+        final List<UserBasicInfoDTO> result = new ArrayList<>();
+        for (User user : list) {
+            UserBasicInfoDTO dto = mapper.map(user, UserBasicInfoDTO.class);
+            result.add(dto);
+        }
+        if (result.size() < 1) {
+            throw new NotFoundException("No users found");
+        }
+        return result;
     }
 }

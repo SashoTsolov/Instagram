@@ -9,7 +9,7 @@ public abstract class AbstractController {
     protected final HttpServletRequest request;
     protected final HttpSession session;
 
-    public AbstractController(HttpServletRequest request, HttpSession session) {
+    public AbstractController(final HttpServletRequest request, final HttpSession session) {
         this.request = request;
         this.session = session;
     }

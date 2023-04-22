@@ -27,8 +27,8 @@ public class UserLoginChecker extends AbstractService {
         final Timestamp threeMonthsAgo = new Timestamp(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(90));
 //        final Timestamp oneMinuteAgo = new Timestamp(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(1));
         for (User user : users) {
-            final Timestamp lastLoginTime = user.getLastLogoutTime();
-            if (lastLoginTime != null && lastLoginTime.before(threeMonthsAgo)) {
+            final Timestamp lastOnlineTime = user.getLastBeenOnline();
+            if (lastOnlineTime != null && lastOnlineTime.before(threeMonthsAgo)) {
                 new Thread(() -> sendEmail(user.getEmail())).start();
             }
         }

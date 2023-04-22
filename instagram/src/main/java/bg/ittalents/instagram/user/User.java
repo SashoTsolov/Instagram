@@ -66,7 +66,7 @@ public class User {
     private Timestamp dateTimeCreated;
 
     @Column(nullable = false)
-    private Timestamp lastLogoutTime;
+    private Timestamp lastBeenOnline;
 
     @Column(nullable = false)
     private boolean isDeactivated;

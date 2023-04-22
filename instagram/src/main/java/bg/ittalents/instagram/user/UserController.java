@@ -41,16 +41,14 @@ public class UserController extends AbstractController {
     public void sendVerificationEmail(
             @RequestParam("email")
             @NotBlank(message = "Email is required")
-            @Email(message = "Invalid email format")
-            final String email) {
+            @Email(message = "Invalid email format") final String email) {
         userService.sendVerificationEmail(email);
     }
 
     @GetMapping("/verify/email")
     public ResponseEntity<String> verifyEmail(
             @RequestParam("verification-token")
-            @NotBlank(message = "Provide verification token!")
-            final String verificationToken) {
+            @NotBlank(message = "Provide verification token!") final String verificationToken) {
         userService.verifyEmail(verificationToken);
         return ResponseEntity.ok("Email verification successful");
     }
@@ -60,8 +58,7 @@ public class UserController extends AbstractController {
     @GetMapping("/{id}")
     public UserWithoutPassAndEmailDTO getUserById(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id) {
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
         getLoggedId();
         return userService.getById(id);
     }
@@ -71,8 +68,7 @@ public class UserController extends AbstractController {
     @GetMapping("/{id}/followers")
     public ResponseEntity<Slice<UserBasicInfoDTO>> getFollowers(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id,
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @ModelAttribute final PageRequestDTO pageRequestDTO) {
 
         getLoggedId();
@@ -87,8 +83,7 @@ public class UserController extends AbstractController {
     @GetMapping("/{id}/following")
     public ResponseEntity<Slice<UserBasicInfoDTO>> getFollowing(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id,
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @ModelAttribute final PageRequestDTO pageRequestDTO) {
         getLoggedId();
         final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowing(
@@ -97,12 +92,13 @@ public class UserController extends AbstractController {
     }
 
     @GetMapping("/search")
-    public List<UserBasicInfoDTO> searchUsersByUsername(
+
+    public ResponseEntity<List<UserBasicInfoDTO>> searchUsersByUsername(
             @RequestParam
-            @NotBlank(message = "Provide search string!")
-            final String username) {
-        getLoggedId();
-        return userService.searchUsersByUsername(username);
+            @NotBlank(message = "Provide search string!") final String username) {
+        final long userId = getLoggedId();
+        final List<UserBasicInfoDTO> userBasicInfoDTOList = userService.getSearchResult(username, userId);
+        return ResponseEntity.ok(userBasicInfoDTOList);
     }
 
     // POST localhost:8080/users
@@ -147,8 +143,7 @@ public class UserController extends AbstractController {
     @GetMapping("/password/reset")
     public ResponseEntity<String> resetPassword(
             @RequestParam("id")
-            @NotBlank(message = "Provide identifier!")
-            final String identifier) {
+            @NotBlank(message = "Provide identifier!") final String identifier) {
         userService.resetPassword(identifier);
         return ResponseEntity.ok("Your new password has been sent to your email");
     }
@@ -157,8 +152,7 @@ public class UserController extends AbstractController {
     @PostMapping("/{id}/block")
     public ResponseEntity<Void> blockUser(
             @PathVariable("id")
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long blockedId) {
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long blockedId) {
         final long blockingUserId = getLoggedId();
         userService.block(blockingUserId, blockedId);
         return ResponseEntity.ok().build();
@@ -166,13 +160,13 @@ public class UserController extends AbstractController {
 
     //POST localhost:8080/users/2/follow
     @PostMapping("/{id}/follow")
-    public ResponseEntity<Void> followUser(
+
+    public ResponseEntity<String> followUser(
             @PathVariable("id")
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long followedId) {
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long followedId) {
         final long followerId = getLoggedId();
-        userService.follow(followerId, followedId);
-        return ResponseEntity.ok().build();
+        final String response = userService.follow(followerId, followedId);
+        return ResponseEntity.ok(response);
     }
 
     //     PUT localhost:8080/users/picture
@@ -187,8 +181,7 @@ public class UserController extends AbstractController {
     @SneakyThrows
     public ResponseEntity<Void> download(
             @PathVariable
-            @NotBlank(message = "Provide file name!")
-            final String fileName,
+            @NotBlank(message = "Provide file name!") final String fileName,
             final HttpServletResponse response) {
         getLoggedId();
         final File file = userService.download(fileName);
@@ -217,13 +210,9 @@ public class UserController extends AbstractController {
     @PutMapping("/deactivate")
     public ResponseEntity<String> deactivateUser(@RequestBody @Valid final UserPasswordDTO dto) {
         final long userId = getLoggedId();
-        final boolean success = userService.deactivateUser(userId, dto);
-        if (success) {
-            session.invalidate();
-            return ResponseEntity.ok("User deactivated successfully");
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect password");
-        }
+        final String message = userService.deactivateUser(userId, dto);
+        session.invalidate();
+        return ResponseEntity.ok(message);
     }
 
     // DELETE localhost:8080/users
