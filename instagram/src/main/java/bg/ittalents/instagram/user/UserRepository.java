@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -13,6 +14,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    @Query(value = """
+            SELECT *
+            FROM users u
+            WHERE u.id = :userId
+            AND u.is_deactivated = 0
+            """, nativeQuery = true)
+    Optional<User> findById(long userId);
     boolean existsByEmail(String email);
 
     boolean existsByUsername(String username);
@@ -61,4 +69,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
             LIMIT 55
             """, nativeQuery = true)
     List<User> findAllUsersOrderById(String username, long userId);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM users u
+            JOIN followers f ON f.followed_user_id = :userId
+            WHERE f.following_user_id = u.id
+            AND u.is_deactivated = 0
+            """, nativeQuery = true)
+    int countFollowersByUserIdAndDeactivatedFalse(long userId);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM users u
+            JOIN followers f ON f.following_user_id = :userId
+            WHERE f.followed_user_id = u.id
+            AND u.is_deactivated = 0
+            """, nativeQuery = true)
+    int countFollowingByUserIdAndDeactivatedFalse(long userId);
 }
