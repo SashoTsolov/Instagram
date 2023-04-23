@@ -15,7 +15,18 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(value = """
-            SELECT *
+            SELECT u.*
+            FROM users u
+            LEFT JOIN users_block_users ubu ON u.id = ubu.blocking_user_id AND ubu.blocked_user_id = :loggedId
+            WHERE u.id = :searchUserId
+            AND u.is_deactivated = 0
+            AND ubu.blocking_user_id IS NULL
+            """, nativeQuery = true)
+    Optional<User> findByIdNotBlocked(long loggedId, long searchUserId);
+
+
+    @Query(value = """
+            SELECT u.*
             FROM users u
             WHERE u.id = :userId
             AND u.is_deactivated = 0
@@ -58,12 +69,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query(value = """
             SELECT u.*
             FROM users u
-            LEFT JOIN users_block_users bu ON bu.blocked_user_id = u.id AND bu.blocking_user_id = :userId
             LEFT JOIN users_block_users bu2 ON bu2.blocking_user_id = u.id AND bu2.blocked_user_id = :userId
             WHERE (u.username LIKE CONCAT('%', :username, '%')
             OR u.name LIKE CONCAT('%', :username, '%')) 
             AND u.is_deactivated = 0 
-            AND bu.blocked_user_id IS NULL 
             AND bu2.blocking_user_id IS NULL
             ORDER BY u.username ASC
             LIMIT 55

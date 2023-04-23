@@ -59,8 +59,7 @@ public class UserController extends AbstractController {
     public UserWithoutPassAndEmailDTO getUserById(
             @PathVariable
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
-        getLoggedId();
-        return userService.getById(id);
+        return userService.getById(getLoggedId(), id);
     }
 
 
@@ -71,8 +70,7 @@ public class UserController extends AbstractController {
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @ModelAttribute final PageRequestDTO pageRequestDTO) {
 
-        getLoggedId();
-        final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowers(
+        final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowers(getLoggedId(),
                 id,
                 PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
 
@@ -85,8 +83,7 @@ public class UserController extends AbstractController {
             @PathVariable
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @ModelAttribute final PageRequestDTO pageRequestDTO) {
-        getLoggedId();
-        final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowing(
+        final Slice<UserBasicInfoDTO> userBasicInfoDTOsList = userService.getFollowing(getLoggedId(),
                 id, PageRequest.of(pageRequestDTO.getPage(), pageRequestDTO.getSize()));
         return ResponseEntity.ok(userBasicInfoDTOsList);
     }
@@ -154,8 +151,8 @@ public class UserController extends AbstractController {
             @PathVariable("id")
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long blockedId) {
         final long blockingUserId = getLoggedId();
-        userService.block(blockingUserId, blockedId);
-        return ResponseEntity.ok("User blocked");
+        String message = userService.block(blockingUserId, blockedId);
+        return ResponseEntity.ok(message);
     }
 
     //POST localhost:8080/users/2/follow
