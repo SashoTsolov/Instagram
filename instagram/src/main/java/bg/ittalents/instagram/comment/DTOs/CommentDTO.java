@@ -1,11 +1,9 @@
 package bg.ittalents.instagram.comment.DTOs;
 
-import bg.ittalents.instagram.comment.Comment;
 import bg.ittalents.instagram.user.DTOs.UserBasicInfoWithoutNameDTO;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.modelmapper.ModelMapper;
 
 import java.time.LocalDateTime;
 

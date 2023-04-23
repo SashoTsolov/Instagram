@@ -9,6 +9,7 @@ import bg.ittalents.instagram.post.DTOs.PostWithCommentsDTO;
 import bg.ittalents.instagram.post.DTOs.PostWithoutCommentsDTO;
 import bg.ittalents.instagram.post.DTOs.SearchRequestDTO;
 import bg.ittalents.instagram.util.AbstractController;
+import com.amazonaws.util.IOUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -31,8 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.nio.file.Files;
+import java.io.InputStream;
 import java.util.List;
 
 @RestController
@@ -124,17 +124,22 @@ public class PostController extends AbstractController {
             @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
 
         getLoggedId();
-        final PostWithoutCommentsDTO dto = mediaService.upload(files, id);
+        final PostWithoutCommentsDTO dto = mediaService.uploadMediaToPost(files, id);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     // View media
     @SneakyThrows
     @GetMapping("/posts/media/{fileName}")
-    public void download(@PathVariable("fileName") final String fileName, final HttpServletResponse response) {
+    public ResponseEntity<Void> downloadMedia(
+            @PathVariable("fileName") final String fileName,
+            final HttpServletResponse response) {
         getLoggedId();
-        final File file = mediaService.download(fileName);
-        Files.copy(file.toPath(), response.getOutputStream());
+        try (InputStream inputStream = mediaService.downloadMedia(fileName)) {
+            IOUtils.copy(inputStream, response.getOutputStream());
+            response.flushBuffer();
+        }
+        return ResponseEntity.ok().build();
     }
 
     // Edit caption - localhost:8080/posts/1/caption

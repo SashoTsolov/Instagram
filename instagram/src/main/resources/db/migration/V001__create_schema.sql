@@ -16,6 +16,7 @@ CREATE TABLE users (
   verification_code_expiry TIMESTAMP,
   date_time_created TIMESTAMP NOT NULL,
   last_been_online TIMESTAMP,
+  checked_for_inactivity TINYINT NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
 

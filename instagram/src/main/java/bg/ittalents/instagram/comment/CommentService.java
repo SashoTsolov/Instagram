@@ -9,8 +9,10 @@ import bg.ittalents.instagram.post.PostRepository;
 import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.user.UserRepository;
 import bg.ittalents.instagram.util.AbstractService;
+import com.amazonaws.services.s3.AmazonS3;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -24,12 +26,14 @@ public class CommentService extends AbstractService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
 
-    public CommentService(UserRepository userRepository,
-                          JavaMailSender javaMailSender,
-                          ModelMapper mapper,
-                          CommentRepository commentRepository,
-                          PostRepository postRepository) {
-        super(userRepository, javaMailSender, mapper);
+    public CommentService(final UserRepository userRepository,
+                          final JavaMailSender javaMailSender,
+                          final ModelMapper mapper,
+                          final AmazonS3 s3Client,
+                          final @Value("${aws.s3.bucket}") String bucketName,
+                          final CommentRepository commentRepository,
+                          final PostRepository postRepository) {
+        super(userRepository, javaMailSender, mapper, s3Client, bucketName);
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
     }

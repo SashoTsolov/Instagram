@@ -9,11 +9,12 @@ import bg.ittalents.instagram.follower.FollowKey;
 import bg.ittalents.instagram.follower.FollowRepository;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
+import com.amazonaws.services.s3.AmazonS3;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.mail.SimpleMailMessage;
@@ -22,8 +23,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -34,12 +33,14 @@ public class UserService extends AbstractService {
     private final BCryptPasswordEncoder encoder;
     private final FollowRepository followRepository;
 
-    public UserService(UserRepository userRepository,
-                       JavaMailSender javaMailSender,
-                       ModelMapper mapper,
-                       BCryptPasswordEncoder encoder,
-                       FollowRepository followRepository) {
-        super(userRepository, javaMailSender, mapper);
+    public UserService(final UserRepository userRepository,
+                       final JavaMailSender javaMailSender,
+                       final ModelMapper mapper,
+                       final AmazonS3 s3Client,
+                       final @Value("${aws.s3.bucket}") String bucketName,
+                       final BCryptPasswordEncoder encoder,
+                       final FollowRepository followRepository) {
+        super(userRepository, javaMailSender, mapper, s3Client, bucketName);
         this.encoder = encoder;
         this.followRepository = followRepository;
     }
@@ -64,6 +65,7 @@ public class UserService extends AbstractService {
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
+        user.setCheckedForInactivity(false);
         userRepository.save(user);
 
         // Send verification email to user
@@ -80,15 +82,18 @@ public class UserService extends AbstractService {
         if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Wrong credentials");
         }
+        user.setCheckedForInactivity(false);
+        user.setLastBeenOnline(null);
 //        if (!user.isVerified()) {
 //            throw new BadRequestException("Account is not verified yet");
 //        }
         if (user.isDeactivated()) {
             user.setDeactivated(false);
-            userRepository.save(user);
         }
+        userRepository.save(user);
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
+
 
     public UserWithoutPassAndEmailDTO getById(final long loggedId, final long searchUserId) {
         final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
@@ -229,40 +234,22 @@ public class UserService extends AbstractService {
         if (!Arrays.asList("jpg", "jpeg", "png").contains(ext)) {
             throw new BadRequestException("File type not supported. Only JPG, JPEG and PNG formats are allowed.");
         }
-        final String name = UUID.randomUUID().toString() + "." + ext;
-        final File dir = new File("uploads_user_profile_picture");
-        if (!dir.exists()) {
-            dir.mkdirs();
+
+        final String newUrl = uploadMedia(file, ext);
+        final User user = getUserById(userId);
+        final String oldUrl = user.getProfilePictureUrl();
+        user.setProfilePictureUrl(newUrl);
+        userRepository.save(user);
+
+        // Delete old file from S3 if it exists
+        if (oldUrl != null) {
+            final String oldFileName = oldUrl.substring(oldUrl.lastIndexOf('/') + 1);
+            s3Client.deleteObject(bucketName, oldFileName);
         }
 
-        File oldFile = null;
-        final User user = getUserById(userId);
-        if (user.getProfilePictureUrl() != null) {
-            oldFile = new File(user.getProfilePictureUrl());
-            if (oldFile.exists()) {
-                oldFile.delete();
-            }
-        }
-        final File newFile = new File(dir, name);
-        Files.copy(file.getInputStream(), newFile.toPath());
-        final String url = dir.getName() + File.separator + newFile.getName();
-        user.setProfilePictureUrl(url);
-        userRepository.save(user);
-        if (oldFile != null) {
-            oldFile.delete();
-        }
         return mapper.map(user, UserBasicInfoDTO.class);
     }
 
-
-    public File download(final String fileName) {
-        final File dir = new File("uploads_user_profile_picture");
-        final File f = new File(dir, fileName);
-        if (f.exists()) {
-            return f;
-        }
-        throw new NotFoundException("File not found");
-    }
 
     public void forgotPassword(final UserEmailDTO dto) {
         final User user = getUserByEmail(dto.getEmail());
@@ -302,7 +289,7 @@ public class UserService extends AbstractService {
     }
 
     public String generateRandomPassword() {
-        final int passwordLength = (int)(Math.random() * 3) + 8; // random password length between 8 and 10 characters
+        final int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
         final String uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         final String lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
         final String numbers = "0123456789";
@@ -313,7 +300,7 @@ public class UserService extends AbstractService {
 
         final Random rand = new Random();
 
-        for(int i = 0; i < passwordLength; i++) {
+        for (int i = 0; i < passwordLength; i++) {
             password += allCharacters.charAt(rand.nextInt(allCharacters.length()));
         }
         return password;
@@ -344,9 +331,11 @@ public class UserService extends AbstractService {
         userRepository.save(user);
     }
 
+
     public Slice<UserBasicInfoDTO> getFollowers(final long loggedId, final long searchUserId, final Pageable pageable) {
         final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
         return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
@@ -360,9 +349,11 @@ public class UserService extends AbstractService {
         return dto;
     }
 
+
     public Slice<UserBasicInfoDTO> getFollowing(final long loggedId, final long searchUserId, final Pageable pageable) {
         final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
         return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
@@ -395,5 +386,18 @@ public class UserService extends AbstractService {
             throw new NotFoundException("No users found");
         }
         return result;
+    }
+
+    public void deleteProfilePicture(final long userId) {
+        final User user = getUserById(userId);
+        final String profilePictureUrl = user.getProfilePictureUrl();
+        if (profilePictureUrl != null) {
+            final String objectKey = profilePictureUrl.substring(profilePictureUrl.lastIndexOf("/") + 1);
+            user.setProfilePictureUrl(null);
+            userRepository.save(user);
+            s3Client.deleteObject(bucketName, objectKey);
+        } else {
+            throw new NotFoundException("No profile picture to delete!");
+        }
     }
 }

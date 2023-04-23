@@ -18,14 +18,15 @@ import bg.ittalents.instagram.location.Location;
 import bg.ittalents.instagram.user.User;
 import bg.ittalents.instagram.user.UserRepository;
 import bg.ittalents.instagram.util.AbstractService;
+import com.amazonaws.services.s3.AmazonS3;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,14 +45,16 @@ public class PostService extends AbstractService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
 
-    public PostService(UserRepository userRepository,
-                       JavaMailSender javaMailSender,
-                       ModelMapper mapper,
-                       LocationRepository locationRepository,
-                       HashtagRepository hashtagRepository,
-                       CommentRepository commentRepository,
-                       PostRepository postRepository) {
-        super(userRepository, javaMailSender, mapper);
+    public PostService(final UserRepository userRepository,
+                       final JavaMailSender javaMailSender,
+                       final ModelMapper mapper,
+                       final AmazonS3 s3Client,
+                       final @Value("${aws.s3.bucket}") String bucketName,
+                       final LocationRepository locationRepository,
+                       final HashtagRepository hashtagRepository,
+                       final CommentRepository commentRepository,
+                       final PostRepository postRepository) {
+        super(userRepository, javaMailSender, mapper, s3Client, bucketName);
         this.locationRepository = locationRepository;
         this.hashtagRepository = hashtagRepository;
         this.commentRepository = commentRepository;
@@ -334,17 +337,10 @@ public class PostService extends AbstractService {
 
     private void deleteMediaFiles(final Post post) {
         final List<Media> mediaList = post.getMediaUrls();
-        final File dir = new File("uploads_user_posts_media");
-
-        if (!dir.exists()) {
-            return;
-        }
-
         for (Media media : mediaList) {
-            final File fileToDelete = new File(media.getMediaUrl());
-            if (fileToDelete.exists()) {
-                fileToDelete.delete();
-            }
+            final String mediaUrl = media.getMediaUrl();
+            final String objectKey = mediaUrl.substring(mediaUrl.lastIndexOf("/") + 1);
+            s3Client.deleteObject(bucketName, objectKey);
         }
     }
 }

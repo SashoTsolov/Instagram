@@ -71,6 +71,9 @@ public class User {
     @Column(nullable = false)
     private boolean isDeactivated;
 
+    @Column(nullable = false)
+    private boolean checkedForInactivity;
+
     @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments;
     @OneToMany(mappedBy = "owner", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)

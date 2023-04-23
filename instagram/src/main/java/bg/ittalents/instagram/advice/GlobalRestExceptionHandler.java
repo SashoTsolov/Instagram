@@ -21,13 +21,13 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
-    private record ErrorDTO(Object message, int status, LocalDateTime time) { }
+    private record ErrorDTO(Object message, int status, LocalDateTime time) {
+    }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Object> handleBadRequestException(BadRequestException e) {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
-        e.printStackTrace(); // TODO
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDTO);
     }
 
@@ -35,7 +35,6 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleNotFoundException(NotFoundException e) {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.NOT_FOUND.value(), LocalDateTime.now());
-        e.printStackTrace(); // TODO
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDTO);
     }
 
@@ -43,7 +42,6 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleUnauthorizedException(UnauthorizedException e) {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.UNAUTHORIZED.value(), LocalDateTime.now());
-        e.printStackTrace(); // TODO
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorDTO);
     }
 
@@ -51,7 +49,6 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleUserAlreadyExistsException(UserAlreadyExistsException e) {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.CONFLICT.value(), LocalDateTime.now());
-        e.printStackTrace(); // TODO
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorDTO);
     }
 
@@ -59,7 +56,6 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleAllOtherExceptions(Exception e) {
         final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), LocalDateTime.now());
-        e.printStackTrace(); // TODO
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDTO);
     }
 
@@ -77,7 +73,6 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
                     final String message = error.getDefaultMessage();
                     errors.put(fieldName, message);
                 });
-        e.printStackTrace(); // TODO
         final ErrorDTO errorDTO = new ErrorDTO(errors, HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDTO);
     }

@@ -35,8 +35,7 @@ public class CommentController extends AbstractController {
     @GetMapping("/comments/{id}")
     public ResponseEntity<Slice<CommentDTO>> viewCommentReplies(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id,
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @ModelAttribute final PageRequestDTO pageRequestDTO) {
 
         final Slice<CommentDTO> replies = commentService.getCommentReplies(getLoggedId(), id,
@@ -47,8 +46,7 @@ public class CommentController extends AbstractController {
     @GetMapping("/posts/{id}/comments")
     public ResponseEntity<Slice<CommentDTO>> viewParentCommentsByPost(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id,
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @ModelAttribute final PageRequestDTO pageRequestDTO) {
 
         final Slice<CommentDTO> comments = commentService.getPostComments(
@@ -61,8 +59,7 @@ public class CommentController extends AbstractController {
     @PostMapping("/comments/{id}/like")
     public ResponseEntity<Integer> likeComment(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id) {
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
 
         final int numberOfLikes = commentService.likePost(getLoggedId(), id);
         return ResponseEntity.ok(numberOfLikes);
@@ -72,8 +69,7 @@ public class CommentController extends AbstractController {
     @PostMapping("/posts/{id}/comments")
     public ResponseEntity<CommentDTO> addCommentToPost(
             @PathVariable
-            @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id,
+            @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @RequestBody @Valid final CommentContentDTO commentContentDTO) {
 
         final CommentDTO dto = commentService.addCommentToPost(getLoggedId(), id, commentContentDTO);
@@ -83,8 +79,7 @@ public class CommentController extends AbstractController {
     // Reply to a comment
     @PostMapping("/comments/{id}")
     public ResponseEntity<CommentDTO> replyToComment(
-            @PathVariable @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id,
+            @PathVariable @Min(value = 1, message = "ID must be greater than or equal to 1") final long id,
             @RequestBody @Valid final CommentContentDTO commentContentDTO) {
 
         final CommentDTO replyDTO = commentService.replyToComment(getLoggedId(),
@@ -95,8 +90,7 @@ public class CommentController extends AbstractController {
     // Delete a comment
     @DeleteMapping("/comments/{id}")
     public ResponseEntity<CommentDTO> deleteComment(
-            @PathVariable @Min(value = 1, message = "ID must be greater than or equal to 1")
-            final long id) {
+            @PathVariable @Min(value = 1, message = "ID must be greater than or equal to 1") final long id) {
 
         final CommentDTO dto = commentService.deleteComment(getLoggedId(), id);
         return ResponseEntity.ok(dto);
