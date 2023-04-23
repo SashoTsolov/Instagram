@@ -18,8 +18,8 @@ public abstract class AbstractService {
         this.mapper = mapper;
     }
 
-    protected User getUserById(final long id) {
-        return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User was not found"));
+    protected User getUserById(final long loggedId) {
+        return userRepository.findById(loggedId).orElseThrow(() -> new NotFoundException("User was not found"));
     }
 
     protected User getUserByEmail(final String email) {
