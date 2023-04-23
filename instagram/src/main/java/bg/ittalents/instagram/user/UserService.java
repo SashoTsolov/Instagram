@@ -7,17 +7,12 @@ import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import bg.ittalents.instagram.follower.Follow;
 import bg.ittalents.instagram.follower.FollowKey;
 import bg.ittalents.instagram.follower.FollowRepository;
-import bg.ittalents.instagram.media.Media;
-import bg.ittalents.instagram.post.Post;
 import bg.ittalents.instagram.user.DTOs.*;
 import bg.ittalents.instagram.util.AbstractService;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
 import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
@@ -28,9 +23,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -73,6 +65,7 @@ public class UserService extends AbstractService {
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
         user.setDateTimeCreated(Timestamp.valueOf(LocalDateTime.now()));
+        user.setCheckedForInactivity(false);
         userRepository.save(user);
 
         // Send verification email to user
@@ -89,19 +82,21 @@ public class UserService extends AbstractService {
         if (!encoder.matches(dto.getPassword(), user.getPassword())) {
             throw new UnauthorizedException("Wrong credentials");
         }
+        user.setCheckedForInactivity(false);
+        user.setLastBeenOnline(null);
 //        if (!user.isVerified()) {
 //            throw new BadRequestException("Account is not verified yet");
 //        }
         if (user.isDeactivated()) {
             user.setDeactivated(false);
-            userRepository.save(user);
         }
+        userRepository.save(user);
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
     public UserWithoutPassAndEmailDTO getById(final long id) {
         final User user = getUserById(id);
-        if (user.isDeactivated()){
+        if (user.isDeactivated()) {
             throw new NotFoundException("User not found");
         }
         return getUserWithoutPassAndEmailDTO(user.getId());
@@ -286,7 +281,7 @@ public class UserService extends AbstractService {
     }
 
     public String generateRandomPassword() {
-        final int passwordLength = (int)(Math.random() * 3) + 8; // random password length between 8 and 10 characters
+        final int passwordLength = (int) (Math.random() * 3) + 8; // random password length between 8 and 10 characters
         final String uppercaseLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         final String lowercaseLetters = "abcdefghijklmnopqrstuvwxyz";
         final String numbers = "0123456789";
@@ -297,7 +292,7 @@ public class UserService extends AbstractService {
 
         final Random rand = new Random();
 
-        for(int i = 0; i < passwordLength; i++) {
+        for (int i = 0; i < passwordLength; i++) {
             password += allCharacters.charAt(rand.nextInt(allCharacters.length()));
         }
         return password;
