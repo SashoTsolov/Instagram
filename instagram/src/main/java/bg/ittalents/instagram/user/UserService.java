@@ -94,19 +94,18 @@ public class UserService extends AbstractService {
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
-    public UserWithoutPassAndEmailDTO getById(final long id) {
-        final User user = getUserById(id);
-        if (user.isDeactivated()) {
-            throw new NotFoundException("User not found");
-        }
+
+    public UserWithoutPassAndEmailDTO getById(final long loggedId, final long searchUserId) {
+        final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
         return getUserWithoutPassAndEmailDTO(user.getId());
     }
 
     //This method should be ready to go!!!
     @Transactional
-    public void block(final long blockingUserId, final long blockedUserId) {
-        final User blocker = getUserById(blockingUserId);
-        final User blocked = getUserById(blockedUserId);
+    public String block(long blockingUserId, long blockedUserId) {
+        User blocker = getUserById(blockingUserId);
+        User blocked = getUserById(blockedUserId);
         //Check if user is trying to block himself
         if (blocker.getId() == blocked.getId()) {
             throw new BadRequestException("You can't block yourself");
@@ -117,16 +116,25 @@ public class UserService extends AbstractService {
             blocked.getBlockedBy().remove(blocker);
             userRepository.save(blocker);
             userRepository.save(blocked);
-            return;
+            return blocked.getUsername() + " unblocked";
         }
         blocker.getBlocked().add(blocked);
         blocked.getBlockedBy().add(blocker);
         if (blocker.getFollowing().contains(blocked)) {
             blocker.getFollowing().remove(blocked);
             blocked.getFollowers().remove(blocker);
+            userRepository.save(blocker);
+            userRepository.save(blocked);
+        }
+        if (blocker.getFollowers().contains(blocked)){
+            blocker.getFollowers().remove(blocked);
+            blocked.getFollowing().remove(blocker);
+            userRepository.save(blocker);
+            userRepository.save(blocked);
         }
         userRepository.save(blocker);
         userRepository.save(blocked);
+        return blocked.getUsername() + " blocked";
     }
 
     private String generateVerificationCode() {
@@ -323,8 +331,11 @@ public class UserService extends AbstractService {
         userRepository.save(user);
     }
 
-    public Slice<UserBasicInfoDTO> getFollowers(final long id, final Pageable pageable) {
-        final User user = getUserById(id);
+
+    public Slice<UserBasicInfoDTO> getFollowers(final long loggedId, final long searchUserId, final Pageable pageable) {
+        final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
         return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
@@ -338,8 +349,11 @@ public class UserService extends AbstractService {
         return dto;
     }
 
-    public Slice<UserBasicInfoDTO> getFollowing(final long id, final Pageable pageable) {
-        final User user = getUserById(id);
+
+    public Slice<UserBasicInfoDTO> getFollowing(final long loggedId, final long searchUserId, final Pageable pageable) {
+        final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
+                .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
+
         return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
                 .map(u -> mapToUserBasicInfoDTO(u));
     }
