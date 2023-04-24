@@ -1,4 +1,4 @@
-# Instagram
+# Instagram clone project
 
 Swagger - http://18.198.203.58:8080/swagger-ui/index.html
 
