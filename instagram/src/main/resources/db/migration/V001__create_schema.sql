@@ -1,5 +1,7 @@
 CREATE TABLE users (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  reset_identifier VARCHAR(100) UNIQUE,
+  reset_identifier_expiry TIMESTAMP,
   username VARCHAR(50) NOT NULL UNIQUE,
   password VARCHAR(100) NOT NULL,
   email VARCHAR(50) NOT NULL UNIQUE,
@@ -10,15 +12,18 @@ CREATE TABLE users (
   gender VARCHAR(1),
   profile_picture_url VARCHAR(255),
   is_verified TINYINT NOT NULL,
-  verification_code VARCHAR(100) NOT NULL UNIQUE,
+  verification_code VARCHAR(100) UNIQUE,
+  verification_code_expiry TIMESTAMP,
   date_time_created TIMESTAMP NOT NULL,
+  last_been_online TIMESTAMP,
+  checked_for_inactivity TINYINT NOT NULL,
   is_deactivated TINYINT NOT NULL
 );
 
 CREATE TABLE followers (
   following_user_id BIGINT,
   followed_user_id BIGINT,
-  date_time_of_follow TIMESTAMP, -- NOT NULL,
+  date_time_of_follow TIMESTAMP NOT NULL,
   PRIMARY KEY (following_user_id, followed_user_id),
   FOREIGN KEY (following_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (followed_user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -33,7 +38,6 @@ CREATE TABLE posts (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   owner_id BIGINT NOT NULL,
   location_id BIGINT,
-  is_story TINYINT NOT NULL,
   caption TEXT,
   is_created TINYINT,
   date_time_created TIMESTAMP NOT NULL,

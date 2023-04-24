@@ -1,9 +1,9 @@
 package bg.ittalents.instagram.advice;
 
-import bg.ittalents.instagram.exceptions.BadRequestException;
-import bg.ittalents.instagram.exceptions.NotFoundException;
-import bg.ittalents.instagram.exceptions.UnauthorizedException;
-import bg.ittalents.instagram.exceptions.UserAlreadyExistsException;
+import bg.ittalents.instagram.exception.BadRequestException;
+import bg.ittalents.instagram.exception.NotFoundException;
+import bg.ittalents.instagram.exception.UnauthorizedException;
+import bg.ittalents.instagram.exception.UserAlreadyExistsException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -26,38 +26,37 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<Object> handleBadRequestException(BadRequestException e) {
-        final ErrorDTO ERROR_MESSAGE = new ErrorDTO(e.getMessage(),
+        final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
-        return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.BAD_REQUEST);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDTO);
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Object> handleNotFoundException(NotFoundException e) {
-        final ErrorDTO ERROR_MESSAGE = new ErrorDTO(e.getMessage(),
+        final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.NOT_FOUND.value(), LocalDateTime.now());
-        return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDTO);
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<Object> handleUnauthorizedException(UnauthorizedException e) {
-        final ErrorDTO ERROR_MESSAGE = new ErrorDTO(e.getMessage(),
+        final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.UNAUTHORIZED.value(), LocalDateTime.now());
-        return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.UNAUTHORIZED);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorDTO);
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<Object> handleUserAlreadyExistsException(UserAlreadyExistsException e) {
-        final ErrorDTO ERROR_MESSAGE = new ErrorDTO(e.getMessage(),
+        final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.CONFLICT.value(), LocalDateTime.now());
-        return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.CONFLICT);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorDTO);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAllOtherExceptions(Exception e) {
-        final ErrorDTO ERROR_MESSAGE = new ErrorDTO(e.getMessage(),
+        final ErrorDTO errorDTO = new ErrorDTO(e.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(), LocalDateTime.now());
-        e.printStackTrace(); // TODO
-        return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.INTERNAL_SERVER_ERROR);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDTO);
     }
 
     @Override
@@ -74,7 +73,7 @@ public class GlobalRestExceptionHandler extends ResponseEntityExceptionHandler {
                     final String message = error.getDefaultMessage();
                     errors.put(fieldName, message);
                 });
-        final ErrorDTO ERROR_MESSAGE = new ErrorDTO(errors, HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
-        return new ResponseEntity<>(ERROR_MESSAGE, HttpStatus.BAD_REQUEST);
+        final ErrorDTO errorDTO = new ErrorDTO(errors, HttpStatus.BAD_REQUEST.value(), LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDTO);
     }
 }
