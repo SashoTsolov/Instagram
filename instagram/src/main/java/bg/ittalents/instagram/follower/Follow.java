@@ -27,7 +27,4 @@ public class Follow {
 
     @Column(name = "date_time_of_follow")
     private Timestamp dateTimeOfFollow;
-
-    // constructors, getters, setters, and other methods
-
 }

@@ -17,6 +17,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService extends AbstractService {
@@ -91,14 +93,14 @@ public class UserService extends AbstractService {
             user.setDeactivated(false);
         }
         userRepository.save(user);
-        return getUserWithoutPassAndEmailDTO(user.getId());
+        return getUserWithoutPassAndEmailDTO(user.getId(), user.getId());
     }
 
 
     public UserWithoutPassAndEmailDTO getById(final long loggedId, final long searchUserId) {
         final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        return getUserWithoutPassAndEmailDTO(user.getId());
+        return getUserWithoutPassAndEmailDTO(loggedId, user.getId());
     }
 
     //This method should be ready to go!!!
@@ -126,7 +128,7 @@ public class UserService extends AbstractService {
             userRepository.save(blocker);
             userRepository.save(blocked);
         }
-        if (blocker.getFollowers().contains(blocked)){
+        if (blocker.getFollowers().contains(blocked)) {
             blocker.getFollowers().remove(blocked);
             blocked.getFollowing().remove(blocker);
             userRepository.save(blocker);
@@ -336,8 +338,15 @@ public class UserService extends AbstractService {
         final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        return userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable)
-                .map(u -> mapToUserBasicInfoDTO(u));
+        final User loggedUser = getUserById(loggedId);
+
+        Slice<User> usersSlice = userRepository.findAllFollowersOrderByDateOfFollowDesc(user.getId(), pageable);
+        List<UserBasicInfoDTO> followers = usersSlice.getContent().stream()
+                .filter(u -> !u.getBlocked().contains(loggedUser))
+                .map(u -> mapToUserBasicInfoDTO(u))
+                .collect(Collectors.toList());
+
+        return new SliceImpl<>(followers, pageable, usersSlice.hasNext());
     }
 
     private UserBasicInfoDTO mapToUserBasicInfoDTO(final User user) {
@@ -354,19 +363,31 @@ public class UserService extends AbstractService {
         final User user = userRepository.findByIdNotBlocked(loggedId, searchUserId)
                 .orElseThrow(() -> new NotFoundException("The user doesn't exist"));
 
-        return userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable)
-                .map(u -> mapToUserBasicInfoDTO(u));
+        final User loggedUser = getUserById(loggedId);
+
+        Slice<User> usersSlice = userRepository.findAllFollowedOrderByDateOfFollowDesc(user.getId(), pageable);
+        List<UserBasicInfoDTO> followed = usersSlice.getContent().stream()
+                .filter(u -> !u.getBlocked().contains(loggedUser))
+                .map(u -> mapToUserBasicInfoDTO(u))
+                .collect(Collectors.toList());
+
+        return new SliceImpl<>(followed, pageable, usersSlice.hasNext());
     }
 
     @Transactional
-    public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(final long userId) {
-        final User user = getUserById(userId);
-        final int numFollowers = userRepository.countFollowersByUserIdAndDeactivatedFalse(userId);
-        final int numFollowing = userRepository.countFollowingByUserIdAndDeactivatedFalse(userId);
-        final int numPosts = user.getPosts().size();
+    public UserWithoutPassAndEmailDTO getUserWithoutPassAndEmailDTO(final long loggedId, final long userId) {
+        //TODO
+        final User loggedUser = getUserById(loggedId);
+        final User searchUser = getUserById(userId);
+        final int numFollowers = userRepository.findAllFollowers(userId).stream()
+                .filter(u -> !u.getBlocked().contains(loggedUser)).toList().size();
+        final int numFollowing = userRepository.findAllFollowed(userId).stream()
+                .filter(u -> !u.getBlocked().contains(loggedUser)).toList().size();
+        final int numPosts = searchUser.getPosts().size();
 
-        return new UserWithoutPassAndEmailDTO(user.getId(), user.getName(),
-                user.getUsername(), user.getProfilePictureUrl(), numFollowers, numFollowing, numPosts, user.getBio());
+        return new UserWithoutPassAndEmailDTO(searchUser.getId(), searchUser.getName(),
+                searchUser.getUsername(), searchUser.getProfilePictureUrl(),
+                numFollowers, numFollowing, numPosts, searchUser.getBio());
     }
 
     public void logout(final long userId) {

@@ -21,8 +21,6 @@ public class FollowKey implements Serializable {
     @Column(name = "following_user_id")
     private long followingUser;
 
-    // constructors, getters, setters, and other methods
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
