@@ -1,15 +1,9 @@
 package bg.ittalents.instagram.user.DTOs;
 
-import bg.ittalents.instagram.post.DTOs.PostPreviewDTO;
-import bg.ittalents.instagram.post.Post;
-import bg.ittalents.instagram.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.beans.ConstructorProperties;
-import java.util.List;
 
 @Getter
 @Setter
