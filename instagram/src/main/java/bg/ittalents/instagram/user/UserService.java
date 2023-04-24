@@ -383,7 +383,8 @@ public class UserService extends AbstractService {
                 .filter(u -> !u.getBlocked().contains(loggedUser)).toList().size();
         final int numFollowing = userRepository.findAllFollowed(userId).stream()
                 .filter(u -> !u.getBlocked().contains(loggedUser)).toList().size();
-        final int numPosts = searchUser.getPosts().size();
+        final int numPosts = searchUser.getPosts().stream()
+                .filter(post -> post.getIsCreated()).collect(Collectors.toList()).size();
 
         return new UserWithoutPassAndEmailDTO(searchUser.getId(), searchUser.getName(),
                 searchUser.getUsername(), searchUser.getProfilePictureUrl(),
